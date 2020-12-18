@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.FollowOpinionMapper">
+    <insert id="insert" parameterType="followOpinion">
+        INSERT INTO follow_opinion(follow_id, opinion, staff_id, staff_name, company_id) VALUES
+        (#{followId},#{opinion},#{staffId},#{staffName},#{companyId})
+    </insert>
+    <delete id="deleteByFollowIdAndStaffId">
+        DELETE FROM follow_opinion WHERE company_id = #{companyId} AND follow_id = #{followId} AND staff_id =#{staffId}
+    </delete>
+    <select id="selectByFollowId" resultType="followOpinion">
+        SELECT opinion,staff_id,staff_name FROM follow_opinion WHERE company_id = #{companyId} AND follow_id = #{followId}
+    </select>
+</mapper>

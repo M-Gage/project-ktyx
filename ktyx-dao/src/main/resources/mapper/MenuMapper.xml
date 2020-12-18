@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.MenuMapper">
+
+    <resultMap id="Menu" type="com.ywkj.ktyunxiao.model.Menu">
+        <result property="menuId" column="menu_id"/>
+        <result property="menuName" column="menu_name"/>
+        <result property="menuUrl" column="menu_url"/>
+    </resultMap>
+
+    <sql id="selectByRoleId_column">
+      m.menu_id,m.menu_name,m.menu_url,m.menu_icon,m.is_parent,m.parent_id
+    </sql>
+
+    <select id="selectByRoleId" resultType="menu">
+        SELECT <include refid="selectByRoleId_column"/>
+        FROM menu m
+          JOIN (SELECT menu_id FROM role_menu
+                  WHERE role_id = #{roleId}
+                    <if test="roleId != 1">
+                        AND company_id = #{companyId}
+                    </if>
+                ) rm
+          ON m.menu_id = rm.menu_id
+    </select>
+    <select id="selectAllMenuByRoleId" resultType="menuVO">
+        SELECT m.menu_id,m.menu_name,count(rm.menu_id) AS flag FROM menu m
+          LEFT JOIN (SELECT menu_id FROM role_menu WHERE company_id = #{companyId} AND role_id = #{roleId}) AS rm
+          ON m.menu_id = rm.menu_id
+            GROUP BY m.menu_id
+    </select>
+    <select id="selectAll" resultType="menu">
+        SELECT menu_id,menu_name FROM menu
+    </select>
+</mapper>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.ErrorCustomerMapper">
+    
+    <insert id="insert" parameterType="errorCustomer">
+        INSERT INTO error_customer(staff_id, longitude, latitude, province, city, district, company_id, create_time) VALUES
+        (#{staffId},#{longitude},#{latitude},#{province},#{city},#{district},#{companyId},NOW())
+    </insert>
+    <select id="selectLonAndLatBetween" resultType="errorCustomer">
+        SELECT longitude,latitude FROM error_customer WHERE company_id = #{pojo.companyId}
+          AND longitude <foreach collection="longitudeArray" item="lon" open="&lt;=" separator="AND longitude &gt;=">#{lon}</foreach>
+          AND latitude <foreach collection="latitudeArray" item="lat" open="&lt;=" separator="AND latitude &gt;=">#{lat}</foreach>
+        LIMIT 1000
+    </select>
+</mapper>

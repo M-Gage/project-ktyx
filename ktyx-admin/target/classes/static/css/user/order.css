@@ -1,0 +1,111 @@
+/*
+
+订单的样式
+
+*/
+.menu {
+    width: 100%;
+    position: relative;
+    right: 0px;
+    /*margin-right: 50%;*/
+}
+
+#comboTree > div > div{
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+
+.menu .menu-content {
+    position: absolute;
+    min-width: 370px;
+    top: 35px;
+    /*left: 0px;*/
+    z-index: 2030;
+    border-radius: 5px;
+    display: none;
+    border: 1px #dbdbdb solid;
+    background-color: #ffffff;
+}
+
+.btn{
+    border:1px #c1bdbd solid;
+}
+
+li {
+    /*margin-top: 0.5%*/
+}
+
+.ml_5_per {
+    margin-left: 5%
+}
+
+#updDistrictList,
+#updProvinceList {
+    display: none;
+    background-color: #ffffff;
+    left: 15px;
+    right: 15px;
+    top: 57px;
+    padding-left: 0;
+    border: 1px solid #a2aba9;
+}
+
+#districtList > li,
+#provinceList > li {
+    list-style: none;
+    line-height: 30px;
+    padding-left: 10px;
+    cursor: pointer;
+}
+
+#updDistrictList > li,
+#updProvinceList > li {
+    list-style: none;
+    line-height: 30px;
+    padding-left: 10px;
+    cursor: pointer;
+}
+
+#districtList > li:hover {
+    background-color: #c1bdbd;
+}
+
+#provinceList > li:hover {
+    background-color: #c1bdbd;
+}
+
+#updDistrictList > li:hover {
+    background-color: #c1bdbd;
+}
+
+#updProvinceList > li:hover {
+    background-color: #c1bdbd;
+}
+
+label {
+    line-height: 34px;
+}
+
+.list-group-item {
+    border-width: 0px;
+}
+.box{
+    height: 50px;
+    width: 98%;
+    border-bottom: #d6d6d6 1px solid;
+    position: fixed;
+    margin: 0 20px 20px 20px;
+    padding: 20px 20px 50px 20px;
+    background: #fff;
+    z-index: 999;
+}
+.ibox-content-order{
+    margin-top: 50px;
+    padding:0 20px 20px 20px;
+}
+
+#orderInfo > div > div.menu-content > ul > li:nth-child(2) > div > div > div{
+    max-height: 380px;
+    overflow-y: auto;
+}

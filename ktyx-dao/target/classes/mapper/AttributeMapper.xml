@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.AttributeMapper">
+    <resultMap id="Attribute" type="com.ywkj.ktyunxiao.model.Attribute">
+        <id column="attribute_id" property="attributeId"/>
+        <result column="attribute_name" property="attributeName"/>
+        <result column="company_id" property="companyId"/>
+        <result column="is_nonstandard" property="isNonstandard"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        `attribute_id`, `attribute_name`,`company_id`,`is_nonstandard`
+    </sql>
+
+    <insert id="insertAttribute" parameterType="com.ywkj.ktyunxiao.model.Attribute" useGeneratedKeys="true"
+            keyProperty="attributeId" >
+
+        insert into attribute (attribute_name,company_id,is_nonstandard)
+        values (#{attributeName},#{companyId},#{isNonstandard})
+    </insert>
+
+   <!-- <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+        delete from doc_goodsattributes
+        where GoodsAttributesID = #{goodsAttributesId,jdbcType=INTEGER}
+    </delete>
+
+    <select id="selectByPrimaryKey" resultMap="Attribute">
+        select
+        <include refid="Base_Column_List"/>
+        from doc_goodsattributes
+        <where>
+            <if admin="goodsAttributesId != null and goodsAttributesId >0">
+                GoodsAttributesID = #{goodsAttributesId,jdbcType=INTEGER}
+            </if>
+            <if admin="goodsAttributesName != null">
+                AND GoodsAttributesName = #{goodsAttributesName,jdbcType=VARCHAR}
+            </if>
+            <if admin="companyId != null">
+                AND CompanyID = #{companyId,jdbcType=INTEGER}
+            </if>
+            <if admin="isNonstandard != null">
+                AND IsNonstandard = #{isNonstandard}
+            </if>
+            <if admin="isNonstandard == null and isNonstandard == ''">
+                AND IsNonstandard IS NULL
+            </if>
+        </where>
+    </select>-->
+    <select id="selectAll" resultMap="Attribute">
+        select
+        <include refid="Base_Column_List"/>
+        from attribute
+        WHERE company_id = #{companyId}
+        AND is_nonstandard = #{isNonstandard}
+    </select>
+
+</mapper>

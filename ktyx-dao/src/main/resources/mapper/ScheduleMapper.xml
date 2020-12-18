@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.ScheduleMapper">
+
+    <resultMap id="scheduleBase" type="com.ywkj.ktyunxiao.model.Schedule">
+        <id property="scheduleId" column="schedule_id"/>
+        <result property="staffId" column="staff_id"/>
+        <result property="companyId" column="company_id"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="content" column="content"/>
+        <result property="remindTime" column="remind_time"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="staffName" column="staff_name"/>
+        <result property="customerName" column="customer_name"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        schedule_id,staff_id,company_id,customer_id,`content`,remind_time,start_time,end_time,staff_name,customer_name
+    </sql>
+
+    <insert id="insertSchedule" useGeneratedKeys="true" keyProperty="scheduleId">
+        insert into schedule (
+        <include refid="Base_Column_List"/>
+        ) VALUES (
+        #{scheduleId},
+        #{staffId},
+        #{companyId},
+        #{customerId},
+        #{content},
+        #{remindTime},
+        #{startTime},
+        #{endTime},
+        #{staffName},
+        #{customerName}
+        )
+    </insert>
+    <select id="selectTodayByCompanyAndCustomerId" resultMap="scheduleBase">
+        select * from doc_schedule
+          where CreateID in (
+              SELECT staffID
+              FROM doc_staff
+              WHERE CustomerID = #{customerId}
+              AND (
+                  provinceLeaderId = #{staffId}
+                  or districtLeaderId = #{staffId}
+                  or staffId = #{staffId}
+                ))
+            and CustomerID = #{customerId}
+            and to_days(StartTime) = to_days(now())
+            AND ScheduleGroupID is NULL
+    </select>
+    <select id="selectAllScheduleByStaffId" resultMap="scheduleBase">
+        select
+        <include refid="Base_Column_List"/>
+        from schedule
+        where staff_id = #{staffId}
+    </select>
+    <select id="selectScheduleByScheduleId" resultMap="scheduleBase">
+        select
+        <include refid="Base_Column_List"/>
+        from schedule
+        where schedule_id = #{scheduleId}
+        AND company_id = #{companyId}
+    </select>
+    <update id="updateSchedule">
+        update schedule
+        <set>
+            <if test="@Ognl@isNotEmpty(content)">
+                content = #{content},
+            </if>
+            <if test="@Ognl@isNotEmpty(customerName)">
+                customer_name = #{customerName},
+            </if>
+            <if test="@Ognl@isNotEmpty(customerId)">
+                customer_id = #{customerId},
+            </if>
+            <if test="@Ognl@isNotEmpty(remindTime)">
+                remind_time = #{remindTime},
+            </if>
+            <if test="@Ognl@isNotEmpty(startTime)">
+                start_time = #{startTime},
+            </if>
+            <if test="@Ognl@isNotEmpty(endTime)">
+                end_time = #{endTime},
+            </if>
+        </set>
+        where schedule_id = #{scheduleId}
+    </update>
+    <delete id="deleteSchedule">
+        DELETE FROM schedule
+        WHERE schedule_id = #{scheduleId}
+    </delete>
+    <insert id="insertScheduleEvent">
+      INSERT INTO event(company_id,staff_id,event_name)
+      VALUES (
+        #{companyId},
+        #{staffId},
+        #{eventName}
+      )
+    </insert>
+    <select id="selectScheduleEvent" resultType="java.lang.String">
+      SELECT event_name
+      FROM event
+      WHERE company_id =#{companyId}
+      and staff_id = #{staffId}
+    </select>
+    <delete id="deleteScheduleEvent">
+      DELETE FROM event
+      WHERE company_id =#{companyId}
+      and staff_id = #{staffId}
+      AND event_name = #{eventName}
+    </delete>
+    <select id="selectAllScheduleDate" resultType="string">
+      select date_format(start_time,'%Y-%m-%d')
+      from schedule
+      where staff_id=#{staffId}
+      GROUP BY date_format(start_time,'%Y-%m-%d')
+      ORDER BY start_time
+    </select>
+    <select id="selectScheduleByDate" resultType="schedule">
+      select <include refid="Base_Column_List"/>
+      from schedule
+      where staff_id = #{staffId}
+      and date_format(start_time,'%Y-%m-%d') = #{date}
+    </select>
+
+
+
+</mapper>
+

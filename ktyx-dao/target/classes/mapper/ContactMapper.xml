@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.ContactMapper">
+
+    <sql id="insert_column">
+        contact_id, customer_id, contact_name, contact_phone, contact_remark, company_id
+    </sql>
+
+    <sql id="insertList_column">
+        contact_id, customer_id, contact_name, contact_phone, contact_remark, is_main, company_id
+    </sql>
+
+    <insert id="insertList">
+        INSERT IGNORE INTO contact(<include refid="insertList_column"/>) VALUE
+        <foreach collection="contactList" item="c" separator="," >
+            (#{c.contactId},#{c.customerId},#{c.contactName},#{c.contactPhone},#{c.contactRemark},#{c.isMain},#{c.companyId})
+        </foreach>
+    </insert>
+    <insert id="insert" parameterType="contact">
+        INSERT INTO contact(<include refid="insert_column"/>) VALUES
+        (#{contactId},#{customerId},#{contactName},#{contactPhone},#{contactRemark},#{companyId})
+    </insert>
+    <update id="updateList">
+        UPDATE contact
+        SET contact_name =
+        <foreach collection="contactList" item="c" open="case contact_id" separator=" " close="end,">
+            WHEN #{c.contactId} THEN #{c.contactName}
+        </foreach>
+        contact_phone =
+        <foreach collection="contactList" item="c" open="case contact_id" separator=" " close="end,">
+            WHEN #{c.contactId} THEN #{c.contactPhone}
+        </foreach>
+        contact_remark =
+        <foreach collection="contactList" item="c" open="case contact_id" separator=" " close="end,">
+            WHEN #{c.contactId} THEN #{c.contactRemark}
+        </foreach>
+        is_main =
+        <foreach collection="contactList" item="c" open="case contact_id" separator=" " close="end">
+            WHEN #{c.contactId} THEN #{c.isMain}
+        </foreach>
+        WHERE contact_id IN
+        <foreach collection="contactList" item="c" open="(" separator="," close=")">
+            #{c.contactId}
+        </foreach>
+    </update>
+    <delete id="deleteListByPrimaryId">
+        DELETE FROM contact WHERE company_Id = #{companyId} AND customer_id =#{customerId}
+            AND contact_id IN
+            <foreach collection="contactIdArray" item="c" open="(" separator="," close=")">
+                #{c}
+            </foreach>
+    </delete>
+</mapper>

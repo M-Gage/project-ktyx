@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.ExperienceConfigMapper">
+    <update id="updateByCompanyId" parameterType="experienceConfig">
+        UPDATE experience_config
+          <set>
+              <if test="@Ognl@isNotZero(insertCustomer)">
+                  insert_customer = #{insertCustomer},
+              </if>
+              <if test="@Ognl@isNotZero(insertFollow)">
+                  insert_follow = #{insertFollow},
+              </if>
+              <if test="@Ognl@isNotZero(insertOrder)">
+                  insert_order = #{insertOrder},
+              </if>
+              <if test="@Ognl@isNotZero(followLike)">
+                  follow_like = #{followLike},
+              </if>
+              <if test="@Ognl@isNotZero(followDislike)">
+                  follow_dislike = #{followDislike},
+              </if>
+          </set>
+          WHERE company_id = #{companyId}
+    </update>
+    <select id="selectByCompanyId" resultType="experienceConfig">
+        SELECT insert_customer,insert_order,insert_follow,follow_dislike,follow_like FROM experience_config WHERE company_id = #{companyId}
+    </select>
+</mapper>

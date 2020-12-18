@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.CartMapper">
+    <resultMap id="AllColumnMap" type="com.ywkj.ktyunxiao.model.vo.CustomerCartVO">
+        <result column="customer_id" property="customerId"/>
+        <result column="customerName" property="customerName"/>
+        <result column="city" property="city"/>
+        <result column="province" property="province"/>
+        <result column="district" property="district"/>
+        <result column="detail_address" property="detailAddress"/>
+        <collection property="goodsAndImageVOS" ofType="com.ywkj.ktyunxiao.model.vo.GoodsAndImageVO">
+            <result column="goods_id" property="goodsId"/>
+            <result column="goods_name" property="goodsName"/>
+            <result column="retail_price" property="retailPrice"/>
+            <result column="purchase_price" property="purchasePrice"/>
+            <result column="stock" property="stock"/>
+            <result column="unit" property="unit"/>
+            <result column="standard_attribute" property="standardAttribute"/>
+            <result column="nonstandard_attribute" property="nonstandardAttribute"/>
+            <result column="assist_attribute" property="assistAttribute"/>
+            <collection property="goodsImages" ofType="com.ywkj.ktyunxiao.model.GoodsImage">
+                <result column="goods_image_path" property="goodsImagePath"/>
+            </collection>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        staff_id,customer_id,goods_id,`quantity`
+    </sql>
+    <insert id="insertList">
+        insert into cart (
+        <include refid="Base_Column_List"/>
+        ) values
+        <foreach collection="carts" item="c" index="index" separator=",">
+            (
+            #{c.staffId},
+            #{c.customerId},
+            #{c.goodsId},
+            #{c.quantity}
+            )
+        </foreach>
+        ON DUPLICATE KEY update
+        Quantity = VALUES (Quantity)
+    </insert>
+
+    <delete id="deleteCart">
+        DELETE FROM cart
+        WHERE staff_id = #{staffId}
+        AND customer_id = #{customerId}
+        AND goods_id = #{goodsId}
+    </delete>
+
+    <select id="selectCartByCustomerId" resultMap="AllColumnMap">
+        SELECT
+        c.customer_id,
+        c.goods_id,
+        c.quantity as stock,
+        g.retail_price,
+        g.unit,
+        g.goods_name,
+        gi.goods_image_path,
+        g.purchase_price,
+        g.remark,
+        g.assist_attribute,
+        g.nonstandard_attribute,
+        g.standard_attribute,
+        ifnull(customer_name,'') AS customerName,
+        cus.detail_address,
+        cus.province,
+        cus.city,
+        cus.district
+        FROM cart c
+        LEFT JOIN goods g on c.goods_id = g.goods_id
+        LEFT JOIN goods_image gi ON g.goods_id = gi.goods_id
+        LEFT JOIN customer cus on c.customer_id = cus.customer_id
+        WHERE c.staff_id = #{staffId}
+        <if test=" @Ognl@isNotEmpty(customerId)">
+            AND c.customer_id = #{customerId}
+        </if>
+        order by c.customer_id DESC
+    </select>
+
+
+    <delete id="deletesCartByStaffIdAndGoodsIdArr">
+        delete from cart
+        where staff_id = #{staffId}
+        and customer_id = #{customerId}
+        and goods_id in
+        <foreach collection="goodsIdArr" item="g" open="(" separator="," close=")">
+            #{g}
+        </foreach>
+    </delete>
+
+
+</mapper>
+
+        <!--<insert id="insertList">
+                insert into doc_cart (
+                <include refid="Base_Column_List"/>
+                ) values
+                <foreach collection="pojos" item="item" index="index" separator=",">
+                    (
+                    ${item.staffId},
+                    ${item.customerId},
+                    ${item.goodsId},
+                    ${item.quantity}
+                    )
+                </foreach>
+                ON DUPLICATE KEY update
+                Quantity = VALUES (Quantity)
+            </insert>-->

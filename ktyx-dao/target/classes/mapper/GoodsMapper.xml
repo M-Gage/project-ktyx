@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.GoodsMapper">
+    <!--使用缓存-->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+
+    <resultMap id="BaseResultMap" type="com.ywkj.ktyunxiao.model.Goods">
+        <id column="goods_id" property="goodsId"/>
+        <result column="goods_no" property="goodsNo"/>
+        <result column="goods_name" property="goodsName"/>
+        <result column="group_id" property="groupId"/>
+        <result column="company_id" property="companyId"/>
+        <result column="sync_goods_id" property="syncGoodsId"/>
+        <result column="retail_price" property="retailPrice"/>
+        <result column="purchase_price" property="purchasePrice"/>
+        <result column="unit" property="unit"/>
+        <result column="type_id" property="typeId"/>
+        <result column="stock" property="stock"/>
+        <result column="stock_warning" property="stockWarning"/>
+        <result column="help_code" property="helpCode"/>
+        <result column="remark" property="remark"/>
+        <result column="expiry_date" property="expiryDate"/>
+        <result column="product_date" property="productDate"/>
+        <result column="last_modify_time" property="lastModifyTime"/>
+        <result column="bar_code" property="barCode"/>
+        <result column="type_name" property="typeName"/>
+        <result column="standard_attribute" property="standardAttribute"/>
+        <result column="nonstandard_attribute" property="nonstandardAttribute"/>
+        <result column="assist_attribute" property="assistAttribute"/>
+    </resultMap>
+
+    <resultMap id="GoodsImageMap" type="com.ywkj.ktyunxiao.model.vo.GoodsAndImageVO" extends="BaseResultMap">
+        <collection property="goodsImages" ofType="com.ywkj.ktyunxiao.model.GoodsImage">
+            <result column="goods_image_path" property="goodsImagePath"/>
+        </collection>
+    </resultMap>
+
+
+    <sql id="Base_Column_List">
+           goods_id,goods_no,goods_name,group_id,company_id,sync_goods_id,retail_price,purchase_price
+            ,`unit`,type_id,`stock`,stock_warning,help_code,remark,expiry_date,product_date,last_modify_time
+              ,bar_code,type_name,standard_attribute,nonstandard_attribute,assist_attribute
+    </sql>
+    <sql id="Excel_Column_List">
+           goods_no,goods_name,retail_price,purchase_price
+            ,`unit`,`stock`,stock_warning,remark,expiry_date,product_date,last_modify_time
+              ,bar_code,type_name,standard_attribute,nonstandard_attribute,assist_attribute
+    </sql>
+
+
+    <insert id="insertByBatch">
+        insert ignore into goods (
+        <include refid="Base_Column_List"/>
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.goodsId},
+            #{item.goodsNo},
+            #{item.goodsName},
+            #{item.groupId},
+            #{item.companyId},
+            #{item.syncGoodsId},
+            #{item.retailPrice},
+            #{item.purchasePrice},
+            #{item.unit},
+            #{item.typeId},
+            #{item.stock},
+            #{item.stockWarning},
+            #{item.helpCode},
+            #{item.remark},
+            #{item.expiryDate},
+            #{item.productDate},
+            now(),
+            #{item.barCode},
+            #{item.typeName},
+            #{item.standardAttribute},
+            #{item.nonstandardAttribute},
+            #{item.assistAttribute}
+            )
+        </foreach>
+    </insert>
+    <select id="selectGoodsByGoodsGroupOrGoodsId" resultMap="GoodsImageMap" useCache="false">
+        SELECT
+        g.<include refid="Base_Column_List"/>,concat(#{path},goods_image_path) as goods_image_path
+        from goods g LEFT JOIN goods_image gi ON g.goods_id = gi.goods_id
+        WHERE g.goods_id = #{id} or group_id = #{id}
+    </select>
+    <select id="selectGoodsList" resultType="com.ywkj.ktyunxiao.model.Goods">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM goods
+        WHERE company_id = #{companyId}
+        <if test="@Ognl@isNotEmpty(condition)">
+            AND goods_no LIKE CONCAT(CONCAT('%',#{condition}),'%')
+            OR goods_name LIKE CONCAT(CONCAT('%',#{condition}),'%')
+            OR help_code LIKE CONCAT(CONCAT('%',#{condition}),'%')
+            OR bar_code LIKE CONCAT(CONCAT('%',#{condition}),'%')
+        </if>
+        limit #{firstNum},#{lastNum}
+    </select>
+    <select id="selectGoodsListCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) as a
+        FROM goods
+        WHERE company_id = #{companyId}
+        <if test="@Ognl@isNotEmpty(condition)">
+            AND goods_no LIKE CONCAT(CONCAT('%',#{condition}),'%')
+            OR goods_name LIKE CONCAT(CONCAT('%',#{condition}),'%')
+            OR help_code LIKE CONCAT(CONCAT('%',#{condition}),'%')
+            OR bar_code LIKE CONCAT(CONCAT('%',#{condition}),'%')
+        </if>
+    </select>
+    <select id="exportGoods" resultType="com.ywkj.ktyunxiao.model.pojo.excel.ExcelGoodsPojo">
+        select
+        <include refid="Excel_Column_List"/>
+        from goods
+        where company_id = #{companyId}
+    </select>
+    <update id="updateGoods" parameterType="com.ywkj.ktyunxiao.model.Goods">
+        update goods SET
+        <if test="@Ognl@isNotEmpty(typeId)">
+            type_id = #{typeId},
+            type_name = #{typeName},
+        </if>
+        goods_no = #{goodsNo},
+        goods_name = #{goodsName},
+        Remark = #{remark},
+        help_code = #{helpCode},
+        bar_code = #{barCode},
+        unit = #{unit},
+        retail_price = #{retailPrice},
+        last_modify_time = #{lastModifyTime},
+        Stock = #{stock},
+        stock_warning = #{stockWarning}
+        where goods_id = #{goodsId}
+    </update>
+    <select id="selectGroupIdList" resultType="java.lang.String">
+        SELECT group_id
+        FROM goods
+        WHERE company_id = #{companyId}
+        <choose>
+            <when test="@Ognl@isTrue(isTypeId)">
+                AND goods.type_id LIKE CONCAT(#{condition},'%')
+            </when>
+            <otherwise>
+                AND (goods.goods_no LIKE CONCAT('%',#{condition},'%')
+                OR goods.help_code LIKE CONCAT('%',#{condition},'%')
+                OR goods.bar_code LIKE CONCAT('%',#{condition},'%')
+                OR goods.goods_name LIKE CONCAT('%',#{condition},'%')
+                OR goods.assist_attribute LIKE CONCAT('%',#{condition},'%'))
+            </otherwise>
+        </choose>
+        GROUP BY group_id
+        limit #{firstNum},#{lastNum}
+    </select>
+    <select id="selectAllGoodsName" resultMap="BaseResultMap">
+        select goods_name,goods_id from goods
+        where company_id=#{companyId}
+        <if test="@Ognl@isNotEmpty(search)">
+          and goods_name like concat('%',#{search},'%')
+        </if>
+        limit #{firstNum},#{lastNum}
+    </select>
+    <select id="selectGoodsAttrById" resultType="java.lang.String">
+        select concat(standard_attribute,' ',assist_attribute) FROM goods
+        where goods_id = #{goodsId} and company_id = #{companyId}
+    </select>
+
+</mapper>

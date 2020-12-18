@@ -1,0 +1,50 @@
+.goods_title {
+    background: #dbdbdb;
+    height: 25px;
+    text-align: center
+}
+
+.img_border {
+    text-align: center;
+    width: 160px;
+    height: 160px;
+}
+
+img {
+    width: 150px;
+    height: 150px;
+}
+
+.border_right {
+    border-right: solid 0.08em #eeeeee !important;
+    height: 160px
+}
+
+.price {
+    text-align: center;
+    line-height: 160px;
+    color: #FF0000
+}
+
+.number {
+    text-align: center;
+    line-height: 160px;
+}
+
+.goods_name {
+    margin: 10px 0 10px 0;
+    font-weight: bold;
+    font-size: 16px
+}
+
+.goods_attr {
+    margin: 20px 0 0 0;
+    color: grey
+}
+.goods_attrs {
+    margin: 5px 0 0 0;
+    color: grey
+}
+.remark {
+    margin-top: 30px;
+}

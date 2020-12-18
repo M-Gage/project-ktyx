@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.ExperienceMapper">
+    <insert id="insert" parameterType="experience">
+        INSERT INTO experience(staff_id, behavior, experience, `before`, after, operating_time, company_id)
+        VALUES(#{staffId},#{behavior},#{experience},#{before},#{after},NOW(),#{companyId})
+    </insert>
+    <select id="selectLimit" resultType="experience">
+        SELECT behavior,`before`,experience,after,operating_time FROM experience
+        WHERE company_id = #{companyId} AND staff_id = #{staffId} ORDER BY operating_time DESC
+        LIMIT #{firstNumber},#{lastNumber}
+    </select>
+    <select id="selectLimitCount" resultType="int">
+        SELECT count(1) FROM experience WHERE company_id = #{companyId} AND staff_id = #{staffId}
+    </select>
+</mapper>

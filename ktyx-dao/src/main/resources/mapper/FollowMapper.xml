@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.FollowMapper">
+    
+    <resultMap id="followBase" type="follow">
+        <id property="followId" column="follow_id"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="staffId" column="staff_id"/>
+        <result property="staffName" column="staff_name"/>
+        <result property="companyId" column="company_id"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="voicePath" column="voice_path"/>
+    </resultMap>
+
+    <resultMap id="followAndPicList" type="followVo" extends="followBase">
+        <collection property="followPicList" ofType="followPic">
+            <result property="picPath" column="pic_path"/>
+            <result property="previewPath" column="preview_path"/>
+        </collection>
+        <collection property="followOpinionList" ofType="followOpinion">
+            <result property="opinion" column="opinion"/>
+            <result property="staffId" column="fo_staff_id"/>
+            <result property="staffName" column="fo_staff_name"/>
+        </collection>
+        <collection property="followCommentList" ofType="followComment">
+            <id property="followCommentId" column="follow_comment_id"/>
+            <result property="staffId" column="fc_staff_id"/>
+            <result property="staffName" column="fc_staff_name"/>
+            <result property="content" column="fc_content"/>
+            <result property="replyCommentId" column="reply_comment_id"/>
+            <result property="createTime" column="fc_create_time"/>
+        </collection>
+    </resultMap>
+
+    <sql id="subordinateId">
+        (SELECT staff_id FROM staff
+        WHERE company_id = #{pojo.companyId}
+        AND dept_id LIKE concat(#{pojo.deptId},'%') AND staff_id NOT IN
+        (SELECT staff_id FROM staff WHERE company_id = #{pojo.companyId} AND dept_id = #{pojo.deptId} AND is_dept_manager = 1 AND staff_id != #{pojo.staffId})
+        )
+    </sql>
+    
+    <sql id="insert_column">
+        follow_id, customer_id, customer_name, company_id, staff_id, staff_name, content, create_time, voice_path
+    </sql>
+
+    <sql id="selectLimit_column">
+        f.customer_id,f.customer_name,f.create_time,f.content,f.staff_id,f.staff_name,f.voice_path,f.follow_id,fp.follow_pic_id,fp.pic_path,fp.preview_path,fo.fo_staff_id,fo.fo_staff_name,fo.opinion,fc.fc_content,fc.fc_staff_id,fc.fc_staff_name,fc.follow_comment_id,fc.reply_comment_id,fc.fc_create_time
+    </sql>
+    <insert id="insert" parameterType="follow">
+        INSERT INTO follow(<include refid="insert_column"/>) VALUES
+        (#{followId},#{customerId},#{customerName},#{companyId},#{staffId},#{staffName},#{content},NOW(),#{voicePath})
+    </insert>
+    <select id="selectLimit" resultMap="followAndPicList">
+        SELECT <include refid="selectLimit_column"/>
+          FROM (SELECT follow_id, staff_id, staff_name, customer_id, voice_path, content,customer_name, create_time FROM follow
+                  WHERE company_id = #{pojo.companyId}
+                    <if test="@Ognl@isNotEmpty(customerId)">
+                        AND customer_id = #{customerId}
+                    </if>
+                    <if test="pojo.isDeptManager == 1">
+                        AND staff_id IN <include refid="subordinateId"/>
+                    </if>
+                    <if test="pojo.isDeptManager == 0">
+                        AND staff_id = #{pojo.staffId}
+                    </if>
+                  ORDER BY create_time DESC LIMIT #{firstNumber},#{lastNumber}
+                ) AS f
+            LEFT JOIN (SELECT follow_pic_id,follow_id, pic_path, preview_path FROM follow_pic WHERE company_id = #{pojo.companyId}) AS fp
+            ON f.follow_id = fp.follow_id
+            LEFT JOIN (SELECT follow_id,opinion,staff_id AS fo_staff_id,staff_name AS fo_staff_name FROM follow_opinion WHERE company_id = #{pojo.companyId}) AS fo
+            ON f.follow_id = fo.follow_id
+            LEFT JOIN (SELECT follow_id,follow_comment_id,staff_id AS fc_staff_id,staff_name AS fc_staff_name,content AS fc_content,reply_comment_id,create_time AS fc_create_time FROM follow_comment WHERE company_id = #{pojo.companyId}) AS fc
+            ON f.follow_id = fc.follow_id
+          ORDER BY f.create_time DESC,fc.fc_create_time ASC
+    </select>
+    <select id="selectLimitCount" resultType="int">
+        SELECT COUNT(1) FROM follow WHERE company_id = #{pojo.companyId}
+        <if test="@Ognl@isNotEmpty(customerId)">
+            AND customer_id = #{customerId}
+        </if>
+        <if test="pojo.isDeptManager == 1">
+            AND staff_id IN <include refid="subordinateId"/>
+        </if>
+        <if test="pojo.isDeptManager == 0">
+            AND staff_id = #{pojo.staffId}
+        </if>
+    </select>
+    <select id="selectStaffIdByPrimaryId" resultType="string">
+        SELECT staff_id FROM follow WHERE follow_id = #{followId} AND company_id =#{companyId}
+    </select>
+</mapper>

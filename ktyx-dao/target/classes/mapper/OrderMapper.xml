@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.OrderMapper">
+
+    <resultMap id="orderBase" type="com.ywkj.ktyunxiao.model.Order">
+        <id column="order_id" property="orderId"/>
+        <result column="staff_id" property="staffId"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="company_id" property="companyId"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="amount" property="amount"/>
+        <result column="status" property="status"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="detail_address" property="detailAddress"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="staff_name" property="staffName"/>
+    </resultMap>
+
+    <resultMap id="orderDetail" type="com.ywkj.ktyunxiao.model.vo.OrderDetailVO" extends="orderBase">
+        <collection property="orderDetail" ofType="com.ywkj.ktyunxiao.model.OrderDetail">
+            <result column="order_id" property="orderId"/>
+            <result column="goods_id" property="goodsId"/>
+            <result column="goods_name" property="goodsName"/>
+            <result column="sum" property="sum"/>
+            <result column="goods_price" property="goodsPrice"/>
+            <result column="type_id" property="typeId"/>
+            <result column="type_name" property="typeName"/>
+        </collection>
+        <collection property="goodsAndImage" ofType="com.ywkj.ktyunxiao.model.vo.GoodsAndImageVO">
+            <id column="goods_id" property="goodsId"/>
+            <result column="goods_no" property="goodsNo"/>
+            <result column="goods_name" property="goodsName"/>
+            <result column="retail_price" property="retailPrice"/>
+            <result column="purchase_price" property="purchasePrice"/>
+            <result column="unit" property="unit"/>
+            <result column="remark" property="remark"/>
+            <result column="expiry_date" property="expiryDate"/>
+            <result column="product_date" property="productDate"/>
+            <result column="type_name" property="typeName"/>
+            <result column="standard_attribute" property="standardAttribute"/>
+            <result column="nonstandard_attribute" property="nonstandardAttribute"/>
+            <result column="assist_attribute" property="assistAttribute"/>
+            <collection property="goodsImages" ofType="com.ywkj.ktyunxiao.model.GoodsImage">
+                <result column="goods_image_path" property="goodsImagePath"/>
+            </collection>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        order_id,staff_id,customer_id,company_id,submit_time,`amount`,`status`,
+        `province`,`city`,`district`,detail_address,customer_name,staff_name
+    </sql>
+    <sql id="Column_List">
+        o.order_id,o.staff_id,o.customer_id,o.company_id,o.submit_time,o.`amount`,o.`status`,
+        o.`province`,o.`city`,o.`district`,o.detail_address,o.customer_name,o.staff_name
+    </sql>
+    <sql id="StaffIds">
+        (SELECT staff_id
+         FROM staff st
+           LEFT JOIN (
+            SELECT dept_id FROM staff
+            WHERE staff_id = #{staffId} AND is_dept_manager = 1) AS s ON 1 = 1
+         WHERE (st.dept_id LIKE concat(s.dept_id, '%') AND is_dept_manager = 0)
+               OR staff_id IN (
+                SELECT staff_id FROM staff
+                WHERE dept_id LIKE concat(s.dept_id, '__%') AND is_dept_manager = 1 OR (staff_id = #{staffId} and is_dept_manager = 0)))
+    </sql>
+    <sql id="dateInterval">
+         AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(#{startDate}, '%y%m%d')
+        AND DATE_FORMAT(#{endDate}, '%y%m%d')
+    </sql>
+
+    <sql id="StaffIdsAndCompanyId">
+        company_id = #{companyId} and staff_id IN
+        <include refid="StaffIds"/>
+    </sql>
+    <sql id="orderByManyCondition">
+        FROM `order` o
+        <if test="@Ognl@isNotEmpty(deptId)">
+            JOIN staff s ON s.staff_id = o.staff_id
+        </if>
+        <if test="@Ognl@isNotEmpty(level)">
+            JOIN customer cus ON o.customer_id = cus.customer_id
+        </if>
+        <if test="@Ognl@isNotEmpty(typeId)">
+            JOIN order_detail od ON o.order_id = od.order_id
+        </if>
+        WHERE o.company_id = #{companyId}
+        AND o.staff_id IN
+        <include refid="StaffIds"/>
+        <if test="@Ognl@isNotEmpty(customerId)">
+            AND o.customer_id = #{customerId}
+        </if>
+        <if test="@Ognl@isNotEmpty(level)">
+            AND cus.level = #{level}
+        </if>
+        <if test="@Ognl@isNotEmpty(typeId)">
+            AND od.type_id = #{typeId}
+        </if>
+        <if test="@Ognl@isNotEmpty(deptId)">
+            AND s.dept_id = #{deptId}
+        </if>
+        <if test="@Ognl@isNotEmpty(status)">
+            AND o.status = #{status}
+        </if>
+        <if test="@Ognl@isNotEmpty(condition)">
+            AND (o.order_id LIKE concat('%',#{condition},'%')
+            or concat(o.`province`,o.`city`,o.`district`,o.detail_address) LIKE concat('%',#{condition},'%'))
+        </if>
+        <if test="@Ognl@isNotEmpty(startDate)">
+            AND date_format(o.submit_time,'%y%m%d')
+            BETWEEN date_format(#{startDate},'%y%m%d')
+            AND date_format(#{endDate},'%y%m%d')
+        </if>
+    </sql>
+
+    <insert id="insertList">
+        INSERT INTO `order` (
+        <include refid="Base_Column_List"/>
+        ) VALUES
+        <foreach collection="orderList" item="o" index="index" separator=",">
+            (
+            #{o.orderId},
+            #{o.staffId},
+            #{o.customerId},
+            #{o.companyId},
+            #{o.submitTime},
+            #{o.amount},
+            #{o.status},
+            #{o.province},
+            #{o.city},
+            #{o.district},
+            #{o.detailAddress},
+            #{o.customerName},
+            #{o.staffName}
+            )
+        </foreach>
+    </insert>
+
+
+    <select id="selectHomeData4Bulletin" resultType="com.ywkj.ktyunxiao.model.vo.BulletinDataVO">
+        SELECT
+          ifnull(sum(amount), 0)                                                AS three,
+          (SELECT count(1)
+           FROM customer
+           WHERE to_days(create_time) = to_days(now()) AND company_id = #{companyId})     AS four,
+          (SELECT ifnull(sum(amount), 0)
+           FROM `order`
+           WHERE to_days(submit_time) = to_days(now()) AND company_id = #{companyId})     AS one,
+          (SELECT ifnull(sum(amount), 0)
+           FROM `order`
+           WHERE date_format(submit_time, '%Y%m') = date_format(now(), '%Y%m')) AS two,
+          (SELECT count(1)
+           FROM follow
+           WHERE to_days(create_time) = to_days(now()) AND company_id = #{companyId})     AS five,
+          (SELECT count(1)
+           FROM route_plan
+           WHERE to_days(route_plan_date) = to_days(now()) AND company_id = #{companyId}) AS six
+        FROM `order`
+        WHERE date_format(DATE_SUB(current_date(), INTERVAL 1 MONTH), '%Y-%m') = date_format(now(), '%Y-%m')
+          AND company_id = #{companyId}
+    </select>
+
+
+    <select id="selectOrderBy7Date" resultMap="orderBase">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `order`
+        WHERE company_id = #{companyId}
+        AND staff_id IN
+        <include refid="StaffIds"/>
+        AND date_format(submit_time,'%y%m%d') &gt;= date_format(date_sub(now(),interval 6 day),'%y%m%d')
+        ORDER BY submit_time DESC
+        limit #{firstNum},#{pageSize}
+    </select>
+    <select id="selectOrderBy7DateCount" resultType="int">
+        SELECT count(*)
+        FROM `order`
+        WHERE company_id = #{companyId}
+        AND staff_id IN
+        <include refid="StaffIds"/>
+        AND date_format(submit_time,'%y%m%d') &gt;= date_format(date_sub(now(),interval 6 day),'%y%m%d')
+    </select>
+    <select id="selectOrderByManyCondition" resultMap="orderBase">
+        SELECT DISTINCT
+        <include refid="Column_List"/>
+        <include refid="orderByManyCondition"/>
+        limit #{pageNumber},#{pageSize}
+    </select>
+    <select id="selectOrderByManyConditionCount" resultType="int">
+        SELECT count(DISTINCT o.order_id)
+        <include refid="orderByManyCondition"/>
+    </select>
+    <update id="updateOrderStatus">
+        UPDATE `order` SET `status` = #{status} WHERE company_id =#{companyId} AND order_id =#{orderId}
+    </update>
+
+    <select id="selectGoodsListByOrderId" resultMap="orderDetail">
+        SELECT
+        <include refid="Column_List"/>
+        ,g.goods_id,g.type_name,g.goods_no,g.goods_name,g.Unit,g.retail_price
+        ,g.Remark,g.standard_attribute,g.assist_attribute,g.nonstandard_attribute
+        ,od.sum,od.goods_price,gi.goods_image_path
+        FROM `order` o
+        LEFT JOIN order_detail od ON o.order_id = od.order_id
+        LEFT JOIN goods g ON g.goods_id = od.goods_id
+        LEFT JOIN goods_image gi ON g.goods_id = gi.goods_id
+        WHERE o.order_id = #{orderId}
+    </select>
+
+
+    <select id="selectOrderStatementByInterval" resultType="statementVO">
+        SELECT
+        <choose>
+            <when test="@Ognl@isTrue(isDay)">
+                DATE_FORMAT(submit_time, '%Y-%m-%d')
+            </when>
+            <otherwise>
+                DATE_FORMAT(submit_time, '%Y-%m-01')
+            </otherwise>
+        </choose>
+        AS existsDate,
+        ifnull(sum(amount),0) as amount,
+        IFNULL(count(order_id),0) as `sum`
+        FROM `order`
+        WHERE company_id = #{companyId}
+        <if test="@Ognl@isNotEmpty(isDay)">
+            AND staff_id IN
+            <include refid="StaffIds"/>
+        </if>
+        <include refid="dateInterval"/>
+        GROUP BY
+        <choose>
+            <when test="@Ognl@isTrue(isDay)">
+                DATE_FORMAT(submit_time, '%Y-%m-%d');
+            </when>
+            <otherwise>
+                DATE_FORMAT(submit_time, '%Y-%m');
+            </otherwise>
+        </choose>
+    </select>
+    <select id="selectTeamStatementByInterval" resultType="statementVO"
+            parameterType="orderStatementSearchPojo">
+        SELECT ifnull(sum(Amount),0) as amount
+        <if test="@Ognl@isTrue(isCustomerContribute)">
+            ,customer_name
+        </if>
+        <if test="@Ognl@isTrue(isTeamRank)">
+            ,staff_name
+        </if>
+        FROM `order`
+        WHERE company_id = #{companyId}
+        <if test=" @Ognl@isNotEmpty(staffId)">
+            AND staff_id IN
+            <include refid="StaffIds"/>
+        </if>
+        <include refid="dateInterval"/>
+        GROUP BY
+        <if test="@Ognl@isTrue(isTeamRank)">
+            staff_name
+        </if>
+        <if test="@Ognl@isTrue(isCustomerContribute)">
+            customer_name
+        </if>
+        ORDER BY amount DESC
+    </select>
+    <select id="selectGoodsTypeStatementByInterval" resultType="statementVO">
+        SELECT ifnull(sum(`sum`),0) as `sum`,type_name
+        FROM `order` o
+        LEFT JOIN order_detail od ON od.order_id = o.order_id
+        WHERE o.company_id = #{companyId}
+        <if test="@Ognl@isNotEmpty(staffId)">
+            AND staff_id IN
+            <include refid="StaffIds"/>
+        </if>
+        <include refid="dateInterval"/>
+        GROUP BY type_name
+        ORDER BY `sum` DESC
+        <if test="@Ognl@isTrue(isApp)">
+            limit 0,10
+        </if>
+    </select>
+    <select id="selectStaffStatementByInterval" resultType="statementVO">
+        SELECT ifnull(sum(amount),0) as amount,staff_name
+        FROM `order` o
+        WHERE company_id = #{companyId}
+        <include refid="dateInterval"/>
+        AND staff_id = #{staffId}
+    </select>
+    <select id="selectStaffContributeByDept" resultType="statementVO">
+        SELECT ifnull(sum(amount),0) as amount
+        <if test="@Ognl@isTrue(isBoss)">
+            ,(SELECT dept_name FROM dept WHERE dept_id = #{dept}) as deptName
+        </if>
+        FROM `order` o
+        LEFT JOIN staff s ON o.staff_id = s.staff_id
+        WHERE o.company_id = #{s.companyId}
+        AND o.staff_id in
+        (SELECT staff_id
+        FROM staff
+        WHERE (staff.dept_id LIKE concat(#{dept},'%')))
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(#{s.startDate}, '%y%m%d')
+        AND DATE_FORMAT(#{s.endDate}, '%y%m%d')
+    </select>
+    <select id="selectStaffTeamContributeByInterval" resultType="statementVO">
+        SELECT ifnull(sum(amount),0) as amount,
+        (SELECT staff_name FROM staff WHERE staff_id = #{staffId}) AS staffName
+        FROM `order`
+        WHERE company_id = #{companyId} AND staff_id IN
+        <include refid="StaffIds"/>
+    </select>
+    <select id="selectGoodsAmountByDateInterval" resultType="goodsAmountVO">
+        SELECT g.goods_name as goodsName,
+        NULLIF (sum(od.sum*od.goods_price),0) as goodsAmount,
+        NULLIF (sum(sum),0) as quantity,
+        standard_attribute as standardAttribute
+        FROM `order` o LEFT JOIN order_detail od ON o.order_id = od.order_id
+        LEFT JOIN `goods` g ON g.goods_id = od.goods_id
+        WHERE o.company_id = #{companyId}
+        <include refid="dateInterval"/>
+        <foreach collection="goods" item="g" open="AND (" separator="or" close=")">
+            od.goods_id = #{g}
+        </foreach>
+        GROUP BY od.goods_id;
+    </select>
+    <select id="select7DateData" resultType="statementVO">
+         SELECT DATE_FORMAT(submit_time, '%Y-%m-%d') AS existsDate,
+        ifnull(sum(amount),0) as amount
+        FROM `order`
+        WHERE company_id = #{companyId}
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(DATE_SUB(now(), INTERVAL 7 DAY), '%y%m%d')
+        AND DATE_FORMAT(now(), '%y%m%d')
+        GROUP BY DATE_FORMAT(submit_time, '%Y-%m-%d');
+    </select>
+    <select id="selectGoodsTypeData" resultType="statementVO">
+        select sum(od.goods_price*od.sum) as amount,type_name
+         FROM `order` o
+        LEFT JOIN order_detail od on o.order_id = od.order_id
+        where company_id = #{companyId}
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(DATE_SUB(now(), INTERVAL 7 DAY), '%y%m%d')
+        AND DATE_FORMAT(now(), '%y%m%d')
+        GROUP BY od.type_id
+    </select>
+    <select id="selectGoodsData" resultType="statementVO">
+        select sum(od.goods_price*od.sum) as `amount`,goods_name
+         FROM `order` o
+        LEFT JOIN order_detail od on o.order_id = od.order_id
+        WHERE o.company_id = #{companyId}
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(DATE_SUB(now(), INTERVAL 7 DAY), '%y%m%d')
+        AND DATE_FORMAT(now(), '%y%m%d')
+        GROUP BY od.goods_id
+        ORDER BY `amount` DESC
+        LIMIT 0, 10
+    </select>
+    <select id="selectStaffData" resultType="statementVO">
+        SELECT staff_name,sum(Amount) as `amount`
+        FROM `order`
+        WHERE company_id = #{companyId}
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(DATE_SUB(now(), INTERVAL 7 DAY), '%y%m%d')
+        AND DATE_FORMAT(now(), '%y%m%d')
+        GROUP BY staff_id
+        ORDER BY `amount` DESC
+        LIMIT 0, 10
+    </select>
+    <select id="selectStaffRank" resultType="int">
+        SELECT ifnull(count(a.amount), 0) AS ranking
+        FROM (SELECT sum(Amount) AS amount
+        FROM `order`  where date_format(now(), '%y%m') = date_format(submit_time, '%y%m' )
+        GROUP BY staff_id) AS a
+        WHERE amount > (SELECT sum(Amount) FROM `order`
+        where staff_id = #{staffId}  AND company_id = #{companyId}
+        AND date_format(now(), '%y%m') = date_format(submit_time, '%y%m'))
+    </select>
+    <select id="selectRevenueByDateInterval" resultType="statementVO">
+        SELECT
+        ifnull(sum(amount),0) as amount,
+        ifnull(count(*),0) as `sum`
+        FROM `order` WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+    </select>
+    <select id="selectAreaAmount" resultType="statementVO">
+        SELECT sum(amount) as `amount` ,DATE_FORMAT(submit_time, '%Y-%m-%d') as existsDate
+        FROM `order` WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+        AND (province = #{area} OR city = #{area})
+        GROUP BY DATE_FORMAT(submit_time, '%Y-%m-%d');
+    </select>
+    <select id="selectAreaType" resultType="statementVO">
+        SELECT sum(amount) as `amount`,type_name
+        FROM `order` o JOIN order_detail od on o.order_id = od.order_id
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+        AND (province = #{area} OR city = #{area})
+        GROUP BY type_id;
+    </select>
+    <select id="selectAreaCustomerAvgAmount" resultType="statementVO">
+        select sum(amount) as `total`, sum(amount)/count(DISTINCT customer_id) AS `amount`,
+        <choose>
+            <when test="@Ognl@isTrue(isProvince)">
+                city
+            </when>
+            <otherwise>
+                district
+            </otherwise>
+        </choose>
+        as `areaName`
+        FROM `order` WHERE
+        company_id = #{companyId} and
+        province = #{area}
+        or city = #{area}
+        GROUP BY
+        <choose>
+            <when test="@Ognl@isTrue(isProvince)">
+                city
+            </when>
+            <otherwise>
+                district
+            </otherwise>
+        </choose>
+        ORDER BY `total` DESC ;
+    </select>
+    <select id="selectAreaGoodsAmount" resultType="statementVO">
+        SELECT
+          sum(amount) AS `amount`,
+          goods_name
+        FROM `order` o LEFT JOIN order_detail od ON o.order_id = od.order_id
+        WHERE company_id = #{companyId} and province = #{area} or city = #{area}
+        GROUP BY goods_id
+        ORDER BY `amount` DESC ;
+    </select>
+
+
+</mapper>

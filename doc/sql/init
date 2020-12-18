@@ -1,0 +1,22 @@
+-- 创建公司
+insert into company(company_id, company_name, site_number, map_keyword, poi_number, create_time) VALUES
+('UUID','公司名称','职员上限','地图关键字','高德poi',NOW());
+-- 创建部门
+insert into dept(dept_id, dept_name, company_id) VALUES
+('部门id','公司名称','公司Id');
+-- 创建管理员账号
+insert into staff(staff_id, phone, password, staff_no, dept_id, dept_name, company_id, staff_name, help_code, birthday,is_dept_manager, role_id, role_name, create_time) VALUES
+('uuid','电话','密码','编号','部门id','部门名称','公司id','职员名称','助记码','生日',1,1,'管理员',now());
+-- 经验值配置
+insert into experience_config(insert_customer, insert_order, insert_follow, follow_like, follow_dislike, company_id) VALUES
+(10,20,5,1,1,'公司id')
+
+-- 例子
+insert into company(company_id, company_name, site_number, map_keyword, poi_number, create_time) VALUES
+('23bc3a9e8be511e89eb6529269fb1459','吃鸡有限公司','99999','酒店|足浴|按摩','090000|070000',NOW());
+insert into dept(dept_id, dept_name, company_id) VALUES
+('1000','吃鸡有限公司','23bc3a9e8be511e89eb6529269fb1459');
+insert into experience_config(insert_customer, insert_order, insert_follow, follow_like, follow_dislike, company_id) VALUES
+(10,20,5,1,1,'23bc3a9e8be511e89eb6529269fb1459');
+insert into staff(staff_id, phone, password, staff_no, dept_id, dept_name, company_id, staff_name, help_code, birthday,is_dept_manager, role_id, role_name, create_time) VALUES
+('53f45cdc8be511e89eb6529269fb1459','123456','123456','00001','1000','吃鸡有限公司','23bc3a9e8be511e89eb6529269fb1459','小鸡鸡','xjj','1987-11-11',1,1,'管理员',now());

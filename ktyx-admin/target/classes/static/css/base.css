@@ -1,0 +1,53 @@
+#app{
+    padding: 20px;
+}
+li{
+    list-style: none;
+}
+[v-cloak]{
+    display: none !important;;
+}
+.clear-padding{
+    padding: 0 !important;
+}
+.clear-margin{
+    margin: 0 !important;
+}
+.clear-margin-bottom{
+    margin-bottom: 0 !important;
+}
+.clear-margin-top{
+    margin-top: 0 !important;
+}
+.clear-margin-left{
+    margin-left: 0 !important;
+}
+.clear-margin-right{
+    margin-right: 0 !important;
+}
+.pull-right{
+    float: right;
+}
+.pull-left{
+    float: left;
+}
+.text-left{
+    text-align: left;
+}
+.text-center{
+    text-align: center;
+}
+.text-right{
+    text-align: right;
+}
+.text-ellipsis{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hidden{
+    display: none;
+}
+.clear{
+    clear: both;
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.CompanyMapper">
+
+    <sql id="selectCompanyByPrimary_column">
+        poi_number,map_keyword
+    </sql>
+    <update id="updateMapKeyWord">
+        UPDATE company SET poi_number = #{poi} , map_keyword = #{keyWord} WHERE company_id = #{companyId}
+    </update>
+
+    <select id="selectMapKeyWordByPrimary" resultType="company">
+        SELECT <include refid="selectCompanyByPrimary_column"/> FROM company WHERE company_id = #{companyId}
+    </select>
+</mapper>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.FollowCommentMapper">
+    <insert id="insert" parameterType="followComment">
+        INSERT INTO follow_comment(follow_id, staff_id, staff_name, content, reply_comment_id, create_time, company_id) VALUES
+        (#{followId},#{staffId},#{staffName},#{content},#{replyCommentId},NOW(),#{companyId})
+    </insert>
+    <select id="selectByFollowId" resultType="followComment">
+        SELECT follow_comment_id,staff_id,staff_name,content,reply_comment_id,create_time,follow_id FROM follow_comment WHERE company_id = #{companyId} AND follow_id = #{followId}
+    </select>
+    <select id="selectStaffIdByPrimaryId" resultType="string">
+        SELECT staff_id FROM follow_comment WHERE company_id = #{companyId} AND follow_comment_id = #{replyCommentId}
+    </select>
+</mapper>

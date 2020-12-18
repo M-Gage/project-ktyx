@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.AnnouncementMapper">
+    <insert id="insertAnnouncement">
+        insert into announcement (content,create_time,company_id,title,state)
+        values (#{content},now(),#{companyId},#{title},0)
+    </insert>
+    <update id="updateAnnouncementState">
+        update announcement set state = #{state} WHERE company_id = #{companyId} AND announcement_id = #{announcementId}
+    </update>
+    <delete id="deleteAnnouncement">
+        delete FROM announcement WHERE announcement_id = #{announcementId}
+    </delete>
+    <select id="selectAnnouncement" resultType="announcement">
+        select announcement_id,content,create_time,title FROM announcement WHERE company_id =#{companyId} AND state = 0;
+    </select>
+    <select id="selectAnnouncementList" resultType="announcement">
+        select announcement_id,content,create_time,title,state
+        FROM announcement
+        WHERE company_id =#{companyId}
+        limit #{pageNumber},#{pageSize};
+    </select>
+    <select id="selectAnnouncementListCount" resultType="_int">
+        select count(*)
+        FROM announcement
+        WHERE company_id =#{companyId}
+    </select>
+
+</mapper>

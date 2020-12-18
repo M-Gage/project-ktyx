@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.DeptMapper">
+
+
+    <sql id="getDeptList_column">
+        dept_id,dept_name
+    </sql>
+    <insert id="insert" parameterType="dept">
+        insert into dept(dept_id, dept_name, company_id) values (#{deptId},#{deptName},#{companyId})
+    </insert>
+
+    <select id="selectListByCompanyId" resultType="dept" parameterType="staff">
+        SELECT <include refid="getDeptList_column"/> FROM dept WHERE company_id = #{companyId} AND dept_id LIKE CONCAT(#{deptId},'%')
+    </select>
+    <select id="selectDeptNameByCompanyId" resultType="int">
+        SELECT COUNT(1) FROM dept WHERE company_id = #{companyId} AND dept_id LIKE CONCAT(#{deptId},'__') AND dept_name = #{deptName}
+    </select>
+    <select id="selectDeptCount" resultType="int">
+        SELECT COUNT(1) FROM dept WHERE company_id = #{companyId} AND dept_id LIKE CONCAT(#{parentDeptId},'__')
+    </select>
+    <select id="selectDeptIdByPreDept" resultType="string">
+        SELECT dept_id FROM dept WHERE dept_id LIKE CONCAT(#{deptId},'__')
+    </select>
+</mapper>

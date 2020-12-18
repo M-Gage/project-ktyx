@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.GoodsImageMapper">
+    <resultMap id="AllColumnMap" type="com.ywkj.ktyunxiao.model.GoodsImage">
+        <result column="goods_id" property="goodsId"/>
+        <result column="goods_image_path" property="goodsImagePath"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        goods_id,goods_image_path
+    </sql>
+
+    <insert id="insertGoodsImage">
+        INSERT INTO goods_image(
+        <include refid="Base_Column_List"/>
+        )VALUES
+        <foreach collection="goodsImage" item="pojo" index="index" separator=",">
+            (
+            #{pojo.goodsId},
+            #{pojo.goodsImagePath}
+            )
+        </foreach>
+    </insert>
+    <delete id="deleteGoodsImage">
+        DELETE FROM goods_image WHERE goods_id = #{goodsId}
+    </delete>
+
+</mapper>
+

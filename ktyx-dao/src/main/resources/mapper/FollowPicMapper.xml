@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.FollowPicMapper">
+    <insert id="insertList">
+        insert INTO follow_pic(follow_id, pic_path, preview_path, company_id) VALUE
+        <foreach collection="followPicList" item="i" separator=",">
+            (#{i.followId},#{i.picPath},#{i.previewPath},#{i.companyId})
+        </foreach>
+    </insert>
+</mapper>

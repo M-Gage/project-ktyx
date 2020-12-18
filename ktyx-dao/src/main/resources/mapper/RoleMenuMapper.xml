@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.RoleMenuMapper">
+    <insert id="insertList">
+      INSERT INTO role_menu(role_id, menu_id, company_id) VALUES
+      <foreach collection="menuIdArray" item="m" separator=",">
+          (#{roleId},#{m},#{companyId})
+      </foreach>
+    </insert>
+    <delete id="deleteByRoleId">
+        DELETE from role_menu WHERE company_id = #{companyId} AND role_id = #{roleId}
+    </delete>
+</mapper>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.AttributeValueMapper">
+    <resultMap id="BaseResultMap" type="com.ywkj.ktyunxiao.model.AttributeValue">
+        <id column="attribute_value_id" property="attributeValueId" />
+        <result column="attribute_id" property="attributeId" />
+        <result column="attribute_value" property="attributeValue" />
+        <result column="company_id" property="companyId" />
+    </resultMap>
+    <sql id="Base_Column_List">
+       attribute_id,attribute_value_id,attribute_value,company_id
+    </sql>
+
+    <insert id="insertAttributeValue" useGeneratedKeys="true" keyProperty="attributeValueId">
+        insert into attribute_value (attribute_id,attribute_value,company_id)
+        values (#{attributeId}, #{attributeValue},#{staff.companyId})
+    </insert>
+    <select id="selectAttributeValuesByAttributeId" resultType="com.ywkj.ktyunxiao.model.AttributeValue">
+        SELECT <include refid="Base_Column_List"/>
+        FROM attribute_value
+        WHERE attribute_id = #{attributeId} AND  company_id = #{companyId}
+    </select>
+
+
+
+</mapper>

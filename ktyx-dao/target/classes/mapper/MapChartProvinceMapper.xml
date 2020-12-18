@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.MapChartProvinceMapper">
+    <insert id="insert" parameterType="mapChartProvince">
+        INSERT INTO map_chart_province(province, company_id,customer_count,amount_count) VALUES
+        (#{province},#{companyId},#{customerCount},#{amountCount})
+    </insert>
+    <update id="updateCount" parameterType="mapChartProvince">
+        UPDATE map_chart_province SET
+          customer_count = customer_count + #{customerCount},
+          amount_count = amount_count + #{amountCount}
+          WHERE company_id = #{companyId} AND province = #{province}
+    </update>
+    <select id="selectByCompanyIdAndProvinceCount" resultType="int">
+        SELECT COUNT(1) FROM map_chart_province WHERE company_id = #{companyId} AND province =#{province}
+    </select>
+    <select id="selectByCompanyId" resultType="mapChartPojo">
+        SELECT
+          province AS name,
+          customer_count AS customerCount,
+          amount_count AS orderAmount
+         FROM map_chart_province WHERE company_id = #{companyId}
+    </select>
+</mapper>

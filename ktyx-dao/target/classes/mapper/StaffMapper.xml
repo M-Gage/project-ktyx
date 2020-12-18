@@ -1,0 +1,627 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.StaffMapper">
+
+    <resultMap id="staffVO" type="com.ywkj.ktyunxiao.model.pojo.StaffPojo">
+        <id property="staffId" column="staff_id"/>
+        <result property="phone" column="phone"/>
+        <result property="staffName" column="staff_name"/>
+        <result property="companyId" column="company_id"/>
+        <result property="birthday" column="birthday"/>
+        <result property="staffStatus" column="staff_status"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="roleId" column="role_id"/>
+        <result property="roleName" column="role_name"/>
+        <result property="isDeptManager" column="is_dept_manager"/>
+    </resultMap>
+
+    <sql id="subordinateId">
+        (SELECT staff_id FROM staff WHERE company_id = #{staff.companyId} AND dept_id LIKE CONCAT(#{staff.deptId},'%') AND staff_id
+          NOT IN (SELECT staff_id FROM staff WHERE dept_id = #{staff.deptId} AND is_dept_manager = 1 AND company_id = #{staff.companyId}))
+    </sql>
+
+    <sql id="StaffIds">
+        (SELECT staff_id
+        FROM staff st
+        LEFT JOIN (
+        SELECT dept_id FROM staff
+        WHERE staff_id = #{staffId} AND is_dept_manager = 1) AS s ON 1 = 1
+        WHERE (st.dept_id LIKE concat(s.dept_id, '%') AND is_dept_manager = 0)
+        OR staff_id IN (
+        SELECT staff_id FROM staff
+        WHERE dept_id LIKE concat(s.dept_id, '__%')
+        AND is_dept_manager = 1
+        OR (staff_id = #{staffId} and is_dept_manager = 0)))
+    </sql>
+    <sql id="dateInterval">
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(#{startDate}, '%y%m%d')
+        AND DATE_FORMAT(#{endDate}, '%y%m%d')
+    </sql>
+    <sql id="StaffIdsAndCompanyId">
+        staff_id IN
+        <include refid="StaffIds"/>
+        AND company_id = #{companyId}
+    </sql>
+
+    <sql id="selectByPhoneAndPwd_column">
+        staff_name,staff_id,role_id,sex,birthday,role_name,dept_id,company_id,staff_status,is_dept_manager,experience
+    </sql>
+
+    <sql id="selectLimit_column">
+        staff_id,staff_no,staff_name,phone,sex,staff_status,dept_id,dept_name,role_id,role_name,is_dept_manager,create_time,birthday,experience
+    </sql>
+
+    <sql id="selectByStaffId_column">
+        staff_id,staff_no,phone,staff_name,birthday,dept_id,dept_name,sex,role_id,role_name,is_dept_manager
+    </sql>
+
+    <sql id="insert_column">
+        staff_id,staff_no,staff_name,help_code,phone,password,staff_status,dept_id,dept_name,role_id,role_name,sex,birthday,is_dept_manager,company_id,create_time
+    </sql>
+
+    <sql id="selectByDeptId_column">
+        staff_id,staff_name,phone,dept_id,dept_name,role_name,is_dept_manager
+    </sql>
+
+    <insert id="insert" parameterType="staff">
+        INSERT INTO staff(<include refid="insert_column"/>)
+        VALUES(#{staffId},#{staffNo},#{staffName},#{helpCode},#{phone},#{password},#{staffStatus},#{deptId},#{deptName},#{roleId},#{roleName},#{sex},#{birthday},#{isDeptManager},#{companyId},NOW())
+    </insert>
+    <insert id="insertList">
+        INSERT INTO staff(<include refid="insert_column"/>)
+        VALUE
+          <foreach collection="staffList" item="s" separator=",">
+              (#{s.staffId},#{s.staffNo},#{s.staffName},#{s.helpCode},#{s.phone},#{s.password},#{s.staffStatus},#{s.deptId},#{s.deptName},#{s.roleId},#{s.roleName},#{s.sex},#{s.birthday},0,#{s.companyId},NOW())
+          </foreach>
+    </insert>
+    <update id="updateByPrimaryId">
+        UPDATE staff
+        <set>
+            <if test="@Ognl@isNotEmpty(staffName)">
+                staff_name = #{staffName},
+            </if>
+            <if test="@Ognl@isNotEmpty(staffNo)">
+                staff_no = #{staffNo},
+            </if>
+            <if test="@Ognl@isNotEmpty(staffName)">
+                staff_name = #{staffName},
+            </if>
+            <if test="@Ognl@isNotEmpty(helpCode)">
+                help_code = #{helpCode},
+            </if>
+            <if test="@Ognl@isNotEmpty(phone)">
+                phone = #{phone},
+            </if>
+            <if test="@Ognl@isNotEmpty(deptId)">
+                dept_id = #{deptId},
+            </if>
+            <if test="@Ognl@isNotEmpty(deptName)">
+                dept_name = #{deptName},
+            </if>
+            <if test="@Ognl@isNotEmpty(roleId)">
+                role_id = #{roleId},
+            </if>
+            <if test="@Ognl@isNotEmpty(roleName)">
+                role_name = #{roleName},
+            </if>
+            <if test="@Ognl@isNotEmpty(sex)">
+                sex = #{sex},
+            </if>
+            <if test="@Ognl@isNotEmpty(birthday)">
+                birthday = #{birthday},
+            </if>
+            <if test="@Ognl@isNotEmpty(isDeptManager)">
+                is_dept_manager = #{isDeptManager}
+            </if>
+        </set>
+        WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE customer SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE schedule SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE route_plan SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE follow SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE follow_comment SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE follow_opinion SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+        UPDATE label SET staff_name = #{staffName} WHERE company_id = #{companyId} AND staff_id = #{staffId};
+    </update>
+    <update id="updateStateByPrimaryId">
+        UPDATE staff SET staff_status = #{state} WHERE staff_id = #{staffId}
+    </update>
+    <update id="updateDeptId">
+        UPDATE staff SET dept_id = #{deptId},dept_name = #{deptName} WHERE company_id = #{companyId} AND staff_id IN
+        <foreach collection="staffIdArray" item="staffId" open="(" separator="," close=");">
+            #{staffId}
+        </foreach>
+        UPDATE customer SET dept_id = #{deptId} WHERE company_id = #{companyId} AND staff_id IN
+        <foreach collection="staffIdArray" item="s" open="(" separator="," close=")">
+            #{s}
+        </foreach>
+    </update>
+    <update id="updatePwdByPrimaryId">
+        UPDATE staff SET password = #{newPwd} WHERE company_id = #{companyId} AND staff_id = #{staffId} AND password = #{oldPwd}
+    </update>
+    <update id="updatePwdByPrimaryArray">
+        UPDATE staff SET password = #{pwd} WHERE company_id = #{companyId} AND staff_id IN
+        <foreach collection="staffIdArray" item="s" open="(" separator="," close=")">
+          #{s}
+        </foreach>
+    </update>
+    <update id="updateExperienceByStaffId">
+        UPDATE staff SET experience = #{experience} WHERE company_id = #{companyId} AND staff_id = #{staffId}
+    </update>
+
+    <select id="selectByPhoneAndPwd" resultType="staffPojo">
+        SELECT
+        <include refid="selectByPhoneAndPwd_column"/>
+        from staff WHERE phone = #{phone} AND password = #{pwd}
+    </select>
+
+    <select id="selectLimit" resultType="staff">
+        SELECT <include refid="selectLimit_column"/> FROM staff
+        WHERE company_id = #{staff.companyId}
+        <if test="staff.isDeptManager == 1">
+            AND staff_id IN <include refid="subordinateId"/>
+            <if test="@Ognl@isNotEmpty(staff.keyWord)">
+                AND (
+                phone LIKE CONCAT('%',#{staff.keyWord},'%') OR
+                staff_name LIKE CONCAT('%',#{staff.keyWord},'%') OR
+                staff_no LIKE CONCAT('%',#{staff.keyWord},'%') OR
+                help_code LIKE CONCAT('%',#{staff.keyWord},'%')
+                )
+            </if>
+            <if test="@Ognl@isNotEmpty(staff.sex)">
+                AND sex = #{staff.sex}
+            </if>
+            <if test="@Ognl@isNotEmpty(staff.roleId)">
+                AND role_id = #{staff.roleId}
+            </if>
+            <if test="@Ognl@isNotEmpty(staff.isAdmin)">
+                AND is_dept_manager = #{staff.isAdmin}
+            </if>
+            <if test="@Ognl@isArray(staff.birthdayArray)">
+                AND DATE_FORMAT(birthday,'%Y-%m-%d')
+                <foreach collection="staff.birthdayArray" item="b" open="BETWEEN" separator="AND">
+                    DATE_FORMAT(#{b},'%Y-%m-%d')
+                </foreach>
+            </if>
+            <if test="@Ognl@isArray(staff.createTimeArray)">
+                AND DATE_FORMAT(create_time,'%Y-%m-%d')
+                <foreach collection="staff.createTimeArray" item="c" open="BETWEEN" separator="AND">
+                    DATE_FORMAT(#{c},'%Y-%m-%d')
+                </foreach>
+            </if>
+            ORDER BY
+            <if test="staff.sortColumn == 'createTime'">create_time</if>
+            <if test="staff.sortColumn == 'staffNo'">staff_no</if>
+            <if test="staff.sortColumn == 'birthday'">birthday</if>
+            <if test="staff.sortColumn == 'sex'">sex</if>
+            <if test="staff.sortColumn == 'deptId'">dept_id</if>
+            <if test="staff.sortColumn == 'roleId'">role_id</if>
+            <if test="staff.sortColumn == 'isDeptManager'">is_dept_manager</if>
+            <if test="staff.sortOrder == 'desc'">DESC</if>
+            <if test="staff.sortOrder == 'asc'">ASC</if>
+            LIMIT #{staff.pageNumber} ,#{staff.pageSize}
+        </if>
+        <if test="staff.isDeptManager == 0">
+            AND 1 = 0
+        </if>
+    </select>
+
+    <select id="selectLimitCount" resultType="int">
+        SELECT COUNT(1) FROM staff
+        WHERE company_id = #{staff.companyId}
+        <if test="staff.isDeptManager == 1">
+            AND staff_id IN <include refid="subordinateId"/>
+            <if test="@Ognl@isNotEmpty(staff.keyWord)">
+                AND (
+                phone LIKE CONCAT('%',#{staff.keyWord},'%') OR
+                staff_name LIKE CONCAT('%',#{staff.keyWord},'%') OR
+                staff_no LIKE CONCAT('%',#{staff.keyWord},'%') OR
+                help_code LIKE CONCAT('%',#{staff.keyWord},'%')
+                )
+            </if>
+            <if test="@Ognl@isNotEmpty(staff.sex)">
+                AND sex = #{staff.sex}
+            </if>
+            <if test="@Ognl@isNotEmpty(staff.roleId)">
+                AND role_id = #{staff.roleId}
+            </if>
+            <if test="@Ognl@isNotEmpty(staff.isAdmin)">
+                AND is_dept_manager = #{staff.isAdmin}
+            </if>
+            <if test="@Ognl@isArray(staff.birthdayArray)">
+                AND DATE_FORMAT(birthday,'%Y-%m-%d')
+                <foreach collection="staff.birthdayArray" item="b" open="BETWEEN" separator="AND">
+                    DATE_FORMAT(#{b},'%Y-%m-%d')
+                </foreach>
+            </if>
+            <if test="@Ognl@isArray(staff.createTimeArray)">
+                AND DATE_FORMAT(create_time,'%Y-%m-%d')
+                <foreach collection="staff.createTimeArray" item="c" open="BETWEEN" separator="AND">
+                    DATE_FORMAT(#{c},'%Y-%m-%d')
+                </foreach>
+            </if>
+        </if>
+        <if test="staff.isDeptManager == 0">
+            AND 1 = 0
+        </if>
+    </select>
+
+    <select id="selectPhone" resultType="int">
+        SELECT COUNT(1) FROM staff WHERE phone = #{phone}
+        <if test="@Ognl@isNotEmpty(staffId)">
+            AND staff_id != #{staffId}
+        </if>
+    </select>
+
+    <select id="selectStaffNoByCompanyId" resultType="int">
+        SELECT COUNT(1) FROM staff WHERE staff_no = #{staffNo} AND company_id = #{staff.companyId}
+        <if test="@Ognl@isNotEmpty(staffId)">
+            AND staff_id != #{staffId}
+        </if>
+    </select>
+    <select id="selectByPrimaryId" resultMap="staffVO">
+        SELECT
+        <include refid="selectByStaffId_column"/>
+        FROM staff WHERE company_id =#{staff.companyId} AND staff_id = #{staffId}
+    </select>
+    <select id="selectSubordinateStaff" resultMap="staffVO">
+        SELECT staff_id,staff_name,dept_id,is_dept_manager
+        FROM staff
+        WHERE company_id = #{staff.companyId}
+        AND staff_id IN
+        <include refid="subordinateId"/>
+        <if test="@Ognl@isNotEmpty(keyWord)">
+            AND (
+            staff_name like concat('%',#{keyWord},'%') or
+            staff_no like concat('%',#{keyWord},'%') or
+            help_code like concat('%',#{keyWord},'%') or
+            phone like concat('%',#{keyWord},'%')
+            )
+        </if>
+    </select>
+    <select id="selectByDeptId" resultType="staff">
+        SELECT
+        <include refid="selectByDeptId_column"/>
+        FROM staff WHERE company_id = #{companyId} AND dept_id LIKE CONCAT(#{deptId},'%') LIMIT
+        #{firstNumber},#{lastNumber}
+    </select>
+    <select id="selectByDeptIdCount" resultType="int">
+        SELECT COUNT(1) FROM staff WHERE company_id = #{companyId} AND dept_id LIKE CONCAT(#{deptId},'%')
+    </select>
+    <select id="selectNewCustomerAddNumber" resultType="monthContrastVO">
+        SELECT * FROM
+        (
+        SELECT ifnull(count(customer_id),0) as lastMonthCount
+        FROM customer
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format(create_time, '%Y%m' ) ) =1
+        ) as a ,
+        (
+        SELECT ifnull(count(customer_id),0) as beforeLastMonthCount
+        FROM customer c
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format( create_time, '%Y%m' ) ) =2
+        ) as b ;
+    </select>
+    <select id="selectDealCustomerNumber" resultType="monthContrastVO">
+        SELECT * FROM
+        (
+        SELECT ifnull(count(*),0) as lastMonthCount
+        FROM (
+        SELECT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format(submit_time, '%Y%m' ) ) = 1
+        GROUP BY customer_id
+        ) as count
+        ) as a ,
+        (
+        SELECT ifnull(count(*),0) as beforeLastMonthCount
+        FROM (
+        SELECT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format(submit_time, '%Y%m' ) ) = 2
+        GROUP BY customer_id
+        ) as count
+        ) as b
+    </select>
+    <select id="selectDealAmount" resultType="monthContrastVO">
+        SELECT * FROM
+        (
+        SELECT ifnull(sum(amount),0) as lastMonthCount
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format( submit_time, '%Y%m' ) ) =1
+        ) as a ,
+        (
+        SELECT ifnull(sum(Amount),0) as beforeLastMonthCount
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format( submit_time, '%Y%m' ) ) =2
+        ) as b ;
+    </select>
+    <select id="selectCustomerFollowupRecord" resultType="monthContrastVO">
+        SELECT * FROM
+        (
+        SELECT ifnull(count(*),0) as lastMonthCount
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format( create_time, '%Y%m' ) ) =1
+        ) as a ,
+        (
+        SELECT ifnull(count(*),0) as beforeLastMonthCount
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , date_format( create_time, '%Y%m' ) ) =2
+        ) as b ;
+    </select>
+    <select id="selectDealGoodsRank" resultType="goodsAmountVO">
+        SELECT goods_name, sum(`sum`) as quantity
+        FROM `order` o JOIN order_detail od ON o.order_id = od.order_id
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND PERIOD_DIFF(date_format(now(), '%Y%m'), date_format(submit_time, '%Y%m')) = 1
+        GROUP BY goods_id
+        ORDER BY quantity DESC
+    </select>
+
+
+    <select id="selectNewCustomerSchedule" resultType="staffTableLookUpVO">
+        SELECT *
+        FROM (SELECT count(*) AS monthData
+        FROM customer
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND MONTH(create_time) = MONTH(now())) AS a,
+        (SELECT count(*) AS quarterData
+        FROM customer
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND quarter(create_time) = quarter(now())) AS b,
+        (SELECT count(*) AS yearData
+        FROM customer
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND YEAR(create_time) = YEAR(now())) AS c;
+    </select>
+    <select id="selectDealCustomerSchedule" resultType="staffTableLookUpVO">
+        SELECT *
+        FROM (SELECT count(*) AS monthData
+        FROM (SELECT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND MONTH(submit_time) = MONTH(now())
+        GROUP BY customer_id) AS a) AS a,
+        (SELECT count(*) AS quarterData
+        FROM (SELECT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND quarter(submit_time) = quarter(now())
+        GROUP BY customer_id) AS a) AS b,
+        (SELECT count(*) AS yearData
+        FROM (SELECT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND YEAR(submit_time) = YEAR(now())
+        GROUP BY customer_id) AS a) AS c;
+    </select>
+    <select id="selectDealActiveSchedule" resultType="staffTableLookUpVO">
+        SELECT *
+        FROM (SELECT count(*) AS monthData
+        FROM (SELECT DISTINCT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND MONTH(submit_time) = MONTH(now())
+        GROUP BY customer_id) AS a) AS a,
+        (SELECT count(*) AS quarterData
+        FROM (SELECT DISTINCT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND quarter(submit_time) = quarter(now())
+        GROUP BY customer_id) AS a) AS b,
+        (SELECT count(*) AS yearData
+        FROM (SELECT DISTINCT customer_id
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND YEAR(submit_time) = YEAR(now())
+        GROUP BY customer_id) AS a) AS c;
+    </select>
+    <select id="selectFollowActiveSchedule" resultType="staffTableLookUpVO">
+        SELECT *
+        FROM (SELECT count(*) AS monthData
+        FROM (SELECT DISTINCT customer_id
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND MONTH(create_time) = MONTH(now())
+        GROUP BY customer_id) AS a) AS a,
+        (SELECT count(*) AS quarterData
+        FROM (SELECT DISTINCT customer_id
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND QUARTER(create_time) = QUARTER(now())
+        GROUP BY customer_id) AS a) AS b,
+        (SELECT count(*) AS yearData
+        FROM (SELECT DISTINCT customer_id
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND YEAR(create_time) = YEAR(now())
+        GROUP BY customer_id) AS a) AS c;
+    </select>
+    <select id="selectSchedule" resultType="staffTableLookUpVO">
+        SELECT *
+        FROM (SELECT count(*) AS monthData
+        FROM schedule
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND MONTH(start_time) = MONTH(now())) AS a,
+        (SELECT count(*) AS quarterData
+        FROM schedule
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND quarter(start_time) = quarter(now())) AS b,
+        (SELECT count(*) AS yearData
+        FROM schedule
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND year(start_time) = year(now())) AS c;
+    </select>
+    <select id="selectFollow" resultType="staffTableLookUpVO">
+        SELECT *
+        FROM (SELECT count(*) AS monthData
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND MONTH(create_time) = MONTH(now())) AS a,
+        (SELECT count(*) AS quarterData
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND quarter(create_time) = quarter(now())) AS b,
+        (SELECT count(*) AS yearData
+        FROM follow
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND year(create_time) = year(now())) AS c;
+    </select>
+
+    <select id="selectMoneySchedule" resultType="staffTableLookUpVO">
+        SELECT * FROM
+        (SELECT IFNULL(sum(Amount),0) AS monthData
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND date_format(now(), '%Y%m') = date_format(submit_time, '%Y%m') ) AS a,
+        (SELECT IFNULL(sum(Amount),0) AS quarterData
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND QUARTER(submit_time )=QUARTER(now())) AS b,
+        (SELECT IFNULL(sum(Amount),0) AS yearData
+        FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        AND YEAR(submit_time )=YEAR(now())) AS e,
+        (SELECT IFNULL(sum(Amount),0) AS historyData
+        FROM `order`
+        WHERE<include refid="StaffIdsAndCompanyId"/>) AS d;
+    </select>
+    <select id="selectStaffJoin" resultType="statementVO">
+        SELECT
+        <choose>
+            <when test="@Ognl@isTrue(isMonth)">
+                count(*) as `sum` , date_format( create_time, '%Y-%m' ) as existsDate FROM staff WHERE
+                <include refid="StaffIdsAndCompanyId"/>
+                AND date_format( create_time, '%Y%m' )
+                BETWEEN date_format( #{startDate}, '%Y%m' )
+                AND date_format( #{endDate}, '%Y%m' )
+                group BY date_format( create_time, '%Y-%m' )
+            </when>
+            <otherwise>
+                count(*) as `sum` , date_format( create_time, '%Y' ) as existsDate FROM staff WHERE
+                <include refid="StaffIdsAndCompanyId"/>
+                AND date_format( create_time, '%Y' )
+                BETWEEN date_format( #{startDate}, '%Y' )
+                AND date_format( #{endDate}, '%Y' )
+                GROUP BY date_format( create_time, '%Y' )
+            </otherwise>
+        </choose>
+
+    </select>
+    <select id="selectStaffOperate" resultType="statementVO">
+        SELECT count(*) as `sum`,date_format(operateTime, '%H') AS existsDate FROM (
+            SELECT min(operate_time) as operateTime
+            FROM log
+            WHERE date_format(operate_time, '%Y%m%d')
+                  BETWEEN date_format(#{startDate}, '%Y%m%d')
+                  AND date_format(#{endDate}, '%Y%m%d')
+                  AND staff_id IN (SELECT staff_id FROM staff WHERE dept_id LIKE concat(#{deptId}, '%'))
+            GROUP BY staff_id,date_format(operate_time, '%Y%m%d'))as ot
+        GROUP BY existsDate
+    </select>
+    <select id="selectStaffDeptInfo" resultType="statementVO">
+        SELECT sum(amount) as `value`,d.dept_name as `name` FROM `order` o
+        LEFT JOIN staff s ON o.staff_id = s.staff_id
+        JOIN (select dept_id,dept_name FROM dept WHERE dept_id LIKE concat('1000','__')) as d ON 1=1
+        WHERE o.company_id = #{companyId} AND s.dept_id LIKE concat(d.dept_id,'%')
+        <include refid="dateInterval"/>
+        GROUP BY d.dept_id;
+    </select>
+    <select id="selectStaffSexInfo" resultType="statementVO">
+        SELECT sum(amount)/count(sex) AS `value`,sex as `name`
+        FROM `order` o LEFT JOIN staff s on s.staff_id = o.staff_id
+        WHERE s.dept_id LIKE concat(#{deptId},'__%')
+        <include refid="dateInterval"/>
+        GROUP BY sex
+    </select>
+    <select id="selectStaffAgeAnalyse" resultType="statementVO" parameterType="staffStatementPojo">
+        select sum(amount) as `sum`,
+          interval(ageDifference,20,25,30,35,40,45,50) as existsDate
+        from `order` o LEFT JOIN staff s on o.staff_id = s.staff_id
+        LEFT JOIN (select ( DATE_FORMAT(now(), '%Y')-DATE_FORMAT(birthday, '%Y')) as ageDifference,staff_id FROM staff ) as sa on s.staff_id = sa.staff_id
+        where  o.staff_id IN
+        <include refid="StaffIds"/>
+        AND o.company_id = #{companyId}
+        <include refid="dateInterval"/>
+        group by existsDate;
+    </select>
+    <select id="exportStaff" resultType="excelStaffPojo">
+      SELECT staff_no,staff_name,sex,phone,dept_name,is_dept_manager,role_name,staff_status,birthday,DATE_FORMAT(create_time,'%Y-%m-%d %T') AS create_time FROM staff WHERE company_id = #{staff.companyId}
+        <if test="staff.isDeptManager == 1">
+          AND staff_id IN <include refid="subordinateId"/>
+        </if>
+        <if test="staff.isDeptManager == 0">
+          AND staff_id = #{staff.staffId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+    <select id="selectStaffAmount" resultType="statementVO" >
+        SELECT sum(amount) as amount , date_format( submit_time, '%Y-%m-%d') as existsDate
+        FROM `order` WHERE  staff_id = #{staffId}
+        <include refid="dateInterval"/>
+        GROUP BY existsDate
+        ORDER BY submit_time DESC
+    </select>
+    <select id="selectStaffAddNewCustomer" resultType="statementVO">
+        select count(*) AS `sum`,date_format(create_time,'%Y-%m-%d') as existsDate
+        FROM `customer`
+        WHERE staff_id = #{staffId}
+        AND DATE_FORMAT(create_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(#{startDate}, '%y%m%d')
+            AND DATE_FORMAT(#{endDate}, '%y%m%d')
+        GROUP BY existsDate
+    </select>
+    <select id="selectStaffNewFollow" resultType="statementVO">
+        select count(*) as `sum`,date_format(create_time,'%Y-%m-%d') as existsDate
+        FROM `follow`
+        WHERE staff_id = #{staffId}
+        AND DATE_FORMAT(create_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(#{startDate}, '%y%m%d')
+            AND DATE_FORMAT(#{endDate}, '%y%m%d')
+        GROUP BY existsDate
+    </select>
+    <select id="selectExperienceByStaffId" resultType="int">
+        SELECT experience FROM staff WHERE company_id = #{companyId} AND staff_id = #{staffId}
+    </select>
+
+
+</mapper>

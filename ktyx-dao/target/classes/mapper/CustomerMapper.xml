@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.CustomerMapper">
+
+    <sql id="selectLimit_column">
+        c.customer_id,c.customer_name,c.customer_no,c.longitude,c.latitude,cl.labels,c.province,c.city,c.district,c.detail_address,c.level,c.remark,c.staff_name,c.customer_status,c.follow_count,c.last_follow_time,c.order_count,c.last_order_time,c.create_time,ct.contact_phone,ct.contact_name,ct.is_main
+    </sql>
+    <sql id="selectLimit_inSide_column">
+        customer_id,customer_name,customer_no,longitude,latitude,province,city,district,detail_address,level,remark,staff_name,customer_status,follow_count,last_follow_time,order_count,last_order_time,create_time,last_modify_time
+    </sql>
+    <sql id="selectLimit_contact_column">
+        contact_name,contact_phone,customer_id,is_main
+    </sql>
+
+    <sql id="subordinateId">
+        (SELECT staff_id FROM staff
+          WHERE company_id = #{pojo.companyId}
+            AND dept_id LIKE concat(#{pojo.deptId},'%') AND staff_id NOT IN
+            (SELECT staff_id FROM staff WHERE company_id = #{pojo.companyId} AND dept_id = #{pojo.deptId} AND is_dept_manager = 1 AND staff_id != #{pojo.staffId})
+        )
+    </sql>
+
+    <sql id="StaffIds">
+        (SELECT staff_id FROM staff st
+          LEFT JOIN (SELECT dept_id FROM staff
+                      WHERE staff_id = #{staffId} AND is_dept_manager = 1) AS s ON 1 = 1
+          WHERE (st.dept_id LIKE concat(s.dept_id, '%') AND is_dept_manager = 0)
+            OR staff_id IN (SELECT staff_id FROM staff
+                              WHERE dept_id LIKE concat(s.dept_id, '__%') AND is_dept_manager = 1
+                                OR (staff_id = #{staffId} and is_dept_manager = 0)
+                            )
+        )
+    </sql>
+
+    <sql id="StaffIdsAndCompanyId">
+        staff_id IN
+        <include refid="StaffIds"/>
+        AND company_id = #{companyId}
+    </sql>
+    <sql id="dateInterval">
+        AND DATE_FORMAT(submit_time, '%y%m%d')
+        BETWEEN DATE_FORMAT(#{startDate}, '%y%m%d')
+        AND DATE_FORMAT(#{endDate}, '%y%m%d')
+    </sql>
+    <sql id="selectByPrimaryId_column">
+      c.customer_id,c.customer_name,c.customer_no,c.level,c.longitude,c.latitude,c.province,c.city,c.district,c.detail_address,c.remark,cl.label_id,ct.contact_phone,ct.contact_id,ct.contact_name,ct.contact_remark,ct.is_main
+    </sql>
+
+    <sql id="exportCustomer_column">
+      c.customer_name,c.staff_name,c.customer_no,date_format(c.create_time, '%Y-%m-%d %T') AS create_time,c.`level`,c.order_count,date_format(c.last_order_time, '%Y-%m-%d %T') AS last_order_time,c.follow_count,date_format(c.last_follow_time, '%Y-%m-%d %T') AS last_follow_time,cl.labels,c.province,c.city,c.district,c.detail_address,c.remark,c.customer_status,ct.contact_name,ct.contact_phone
+    </sql>
+
+    <resultMap id="customerBase" type="customer">
+        <id property="customerId" column="customer_id"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="staffName" column="staff_name"/>
+        <result property="companyId" column="company_id"/>
+        <result property="customerStatus" column="customer_status"/>
+        <result property="customerNo" column="customer_no"/>
+        <result property="staffId" column="staff_id"/>
+        <result property="longitude" column="longitude"/>
+        <result property="latitude" column="latitude"/>
+        <result property="city" column="city"/>
+        <result property="province" column="province"/>
+        <result property="district" column="district"/>
+        <result property="detailAddress" column="detail_address"/>
+        <result property="level" column="level"/>
+        <result property="helpCode" column="help_code"/>
+        <result property="createTime" column="create_time"/>
+        <result property="followCount" column="follow_count"/>
+        <result property="lastFollowTime" column="last_follow_time"/>
+        <result property="orderCount" column="order_count"/>
+        <result property="lastOrderTime" column="last_order_time"/>
+        <result property="remark" column="remark"/>
+        <result property="syncCustomerId" column="sync_customer"/>
+    </resultMap>
+
+    <resultMap id="customerAndContact" type="customerVO" extends="customerBase">
+        <result column="labels" property="labels"/>
+        <collection property="contactList" ofType="contact">
+            <id property="contactId" column="contact_id"/>
+            <result property="contactName" column="contact_name"/>
+            <result property="contactPhone" column="contact_phone"/>
+            <result property="contactRemark" column="contact_remark"/>
+            <result property="isMain" column="is_main"/>
+        </collection>
+    </resultMap>
+    <resultMap id="customerAndContactAndLabel" type="customerVO" extends="customerAndContact">
+        <collection property="customerLabelList" ofType="customerLabel">
+            <result property="labelId" column="label_id"/>
+        </collection>
+    </resultMap>
+
+    <insert id="insert" parameterType="customerVO">
+        INSERT INTO customer(
+            customer_id, customer_name, customer_no, staff_id, staff_name, longitude, latitude, city,
+            province, district, detail_address, level, help_code, create_time, last_modify_time,
+            remark, company_id,sync_customer_id,dept_id)
+        VALUES(#{customerId},#{customerName},#{customerNo},#{staffId},#{staffName},#{longitude},#{latitude},#{city},
+            #{province},#{district},#{detailAddress},#{level},#{helpCode},NOW(),NOW(),
+            #{remark},#{companyId},#{syncCustomerId},#{deptId})
+    </insert>
+    <insert id="insertList">
+        INSERT IGNORE INTO customer(
+            customer_id, customer_name, customer_no, staff_id, staff_name, longitude, latitude, city,
+            province, district, detail_address, level, help_code, create_time, last_modify_time,
+            remark, company_id,sync_customer_id,dept_id)
+        VALUE
+        <foreach collection="customerList" item="c" separator=",">
+            (#{c.customerId},#{c.customerName},#{c.customerNo},#{c.staffId},#{c.staffName},#{c.longitude},#{c.latitude},#{c.city},
+            #{c.province},#{c.district},#{c.detailAddress},#{c.level},#{c.helpCode},NOW(),NOW(),
+            #{c.remark},#{c.companyId},#{c.syncCustomerId},#{c.deptId})
+        </foreach>
+    </insert>
+    <update id="updateByPrimaryId" parameterType="customer">
+        UPDATE customer
+        <set>
+            <if test="@Ognl@isNotEmpty(customerName)">
+                customer_name = #{customerName},
+            </if>
+            <if test="@Ognl@isNotEmpty(customerNo)">
+                customer_no = #{customerNo},
+            </if>
+            <if test="@Ognl@isNotEmpty(longitude)">
+                longitude = #{longitude},
+            </if>
+            <if test="@Ognl@isNotEmpty(latitude)">
+                latitude = #{latitude},
+            </if>
+            <if test="@Ognl@isNotEmpty(city)">
+                city = #{city},
+            </if>
+            <if test="@Ognl@isNotEmpty(province)">
+                province = #{province},
+            </if>
+            <if test="@Ognl@isNotEmpty(district)">
+                district = #{district},
+            </if>
+            <if test="@Ognl@isNotEmpty(detailAddress)">
+                detail_address = #{detailAddress},
+            </if>
+            <if test="@Ognl@isNotEmpty(level)">
+                level = #{level},
+            </if>
+            <if test="@Ognl@isNotEmpty(helpCode)">
+                help_code = #{helpCode},
+            </if>
+            <if test="@Ognl@isNotEmpty(remark)">
+                remark = #{remark},
+            </if>
+            last_modify_time = NOW()
+        </set>
+        WHERE customer_id = #{customerId} AND company_id = #{companyId};
+        UPDATE schedule SET customer_name = #{customerName} WHERE customer_id = #{customerId} AND company_id = #{companyId};
+        UPDATE route_plan SET customer_name = #{customerName} WHERE customer_id = #{customerId} AND company_id = #{companyId};
+        UPDATE follow SET customer_name = #{customerName} WHERE customer_id = #{customerId} AND company_id = #{companyId};
+    </update>
+    <update id="updateStatusByPrimaryId">
+        UPDATE customer SET customer_status = #{status} WHERE customer_id = #{customerId}
+    </update>
+    <update id="updateListStaffId">
+        UPDATE customer SET staff_id = #{staffId},staff_name = #{staffName},last_modify_time = NOW()
+        WHERE company_id = #{companyId} AND customer_id IN
+        <foreach collection="customerIdArray" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+    <update id="updateLastOrderTime">
+        UPDATE customer SET last_order_time = NOW(), last_modify_time= NOW(), order_count = order_count + 1
+          WHERE customer_id =#{customerId} and company_id = #{companyId}
+    </update>
+    <update id="updateLastFollowTime">
+        UPDATE customer SET last_follow_time = NOW(), last_modify_time= NOW(), follow_count = follow_count + 1
+          WHERE customer_id = #{customerId} AND company_id = #{companyId}
+    </update>
+    <select id="selectCustomerNameByCompanyId" resultType="int">
+        SELECT COUNT(1) FROM customer WHERE company_id = #{companyId} AND customer_name = #{customerName}
+        <if test="@Ognl@isNotEmpty(customerId)">
+            AND customer_id != #{customerId}
+        </if>
+    </select>
+    <select id="selectCustomerNoByCompanyId" resultType="int">
+        SELECT COUNT(1) FROM customer WHERE company_id = #{companyId} AND customer_no = #{customerNo}
+        <if test="@Ognl@isNotEmpty(customerId)">
+            AND customer_id != #{customerId}
+        </if>
+    </select>
+    <select id="selectLimit" resultMap="customerAndContact" parameterType="customerSearchPojo">
+        SELECT <include refid="selectLimit_column"/> FROM
+        (SELECT <include refid="selectLimit_inSide_column"/> FROM customer
+          WHERE company_id = #{pojo.companyId}
+        <choose>
+            <when test="@Ognl@isNotEmpty(pojo.chiefId)">
+                AND staff_id = #{pojo.chiefId}
+            </when>
+            <when test="pojo.isDeptManager == 1">
+                AND staff_id IN
+                <include refid="subordinateId"/>
+            </when>
+            <otherwise>
+                AND staff_id = #{pojo.staffId}
+            </otherwise>
+        </choose>
+        <if test="@Ognl@isNotEmpty(pojo.keyWord)">
+            AND (
+            customer_name LIKE CONCAT('%',#{pojo.keyWord},'%') OR
+            customer_no LIKE CONCAT('%',#{pojo.keyWord},'%') OR
+            help_code LIKE CONCAT('%',#{pojo.keyWord},'%')
+            )
+        </if>
+        <if test="@Ognl@isArray(pojo.createTimeArray)">
+            AND DATE_FORMAT(create_time, '%Y-%m-%d')
+            <foreach collection="pojo.createTimeArray" item="c" open="BETWEEN" separator="AND">
+                DATE_FORMAT(#{c}, '%Y-%m-%d')
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.orderTimeArray)">
+            AND DATE_FORMAT(last_order_time, '%Y-%m-%d')
+            <foreach collection="pojo.orderTimeArray" item="c" open="BETWEEN" separator="AND">
+                DATE_FORMAT(#{c}, '%Y-%m-%d')
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.followTimeArray)">
+            AND DATE_FORMAT(last_follow_time, '%Y-%m-%d')
+            <foreach collection="pojo.followTimeArray" item="c" open="BETWEEN" separator="AND">
+                DATE_FORMAT(#{c}, '%Y-%m-%d')
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.orderCountArray)">
+            AND order_count
+            <foreach collection="pojo.orderCountArray" item="o" open="BETWEEN" separator="AND">
+                #{o}
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.followCountArray)">
+            AND follow_count
+            <foreach collection="pojo.followCountArray" item="f" open="BETWEEN" separator="AND">
+                #{f}
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.levelArray)">
+            AND `level` IN
+            <foreach collection="pojo.levelArray" item="l" separator="," open="(" close=")">
+                #{l}
+            </foreach>
+        </if>
+        <if test="@Ognl@isNotEmpty(pojo.deptId)">
+            AND dept_id LIKE CONCAT(#{pojo.deptId},'%')
+        </if>
+        <if test="@Ognl@isNotEmpty(pojo.province)">
+            AND province = #{pojo.province}
+            <if test="@Ognl@isNotEmpty(pojo.city)">
+                AND city = #{pojo.city}
+                <if test="@Ognl@isNotEmpty(pojo.district)">
+                    AND district = #{pojo.district}
+                </if>
+            </if>
+        </if>
+        ) AS c
+        LEFT JOIN (SELECT <include refid="selectLimit_contact_column"/>  FROM contact WHERE company_Id = #{pojo.companyId} AND is_main = 1) AS ct
+          ON c.customer_id = ct.customer_id
+        LEFT JOIN (SELECT group_concat(label_name) AS labels,customer_id FROM customer_label WHERE company_id = #{pojo.companyId} GROUP BY customer_id,company_id) AS cl
+          ON c.customer_id = cl.customer_id
+        <if test="@Ognl@isArray(pojo.labelArray)">
+            JOIN customer_label cu ON c.customer_id = cu.customer_id
+        </if>
+        <if test="@Ognl@isArray(pojo.orderMoneyArray)">
+            JOIN (SELECT customer_id,SUM(amount) / 1000 AS amouts FROM `order`
+            WHERE company_id = #{pojo.companyId}
+            <choose>
+                <when test="pojo.isDeptManager == 1">
+                    AND staff_id IN
+                    <include refid="subordinateId"/>
+                </when>
+                <otherwise>
+                    AND staff_id = #{pojo.staffId}
+                </otherwise>
+            </choose>
+            GROUP BY customer_id) o
+            ON o.customer_id = c.customer_id
+        </if>
+        WHERE 1 = 1
+        <if test="@Ognl@isArray(pojo.labelArray)">
+            AND cu.label_id IN
+            <foreach collection="pojo.labelArray" item="l" open="(" separator="," close=")">
+                #{l}
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.orderMoneyArray)">
+            AND o.amouts
+            <foreach collection="pojo.orderMoneyArray" item="o" open="BETWEEN" separator="AND">
+                #{o}
+            </foreach>
+        </if>
+        ORDER BY
+        <if test="pojo.sortColumn == 'lastModifyTime'">c.last_modify_time</if>
+        <if test="pojo.sortColumn == 'customerNo'">c.customer_no</if>
+        <if test="pojo.sortColumn == 'createTime'">c.create_time</if>
+        <if test="pojo.sortColumn == 'orderCount'">c.order_count</if>
+        <if test="pojo.sortColumn == 'followCount'">c.follow_count</if>
+        <if test="pojo.sortColumn == 'lastOrderTime'">c.last_order_time</if>
+        <if test="pojo.sortColumn == 'lastFollowTime'">c.last_follow_time</if>
+        <if test="pojo.sortColumn == 'level'">c.level</if>
+        <if test="pojo.sortOrder == 'desc'">DESC</if>
+        <if test="pojo.sortOrder == 'asc'">ASC</if>
+        LIMIT #{pojo.pageNumber},#{pojo.pageSize}
+    </select>
+    <select id="selectLimitCount" resultType="int" parameterType="customerSearchPojo">
+        SELECT COUNT(1) from customer AS c
+        <if test="@Ognl@isArray(pojo.labelArray)">
+            JOIN customer_label cu ON c.customer_id = cu.customer_id
+        </if>
+        <if test="@Ognl@isArray(pojo.orderMoneyArray)">
+            JOIN (SELECT customer_id,SUM(amount) / 1000 AS amouts FROM `order`
+            WHERE company_id = #{pojo.companyId}
+            <choose>
+                <when test="pojo.isDeptManager == 1">
+                    AND staff_id IN
+                    <include refid="subordinateId"/>
+                </when>
+                <otherwise>
+                    AND staff_id = #{pojo.staffId}
+                </otherwise>
+            </choose>
+            GROUP BY customer_id) o
+            ON o.customer_id = c.customer_id
+        </if>
+        WHERE c.company_id = #{pojo.companyId}
+        <choose>
+            <when test="@Ognl@isNotEmpty(pojo.chiefId)">
+                AND c.staff_id = #{pojo.chiefId}
+            </when>
+            <when test="pojo.isDeptManager == 1">
+                AND c.staff_id IN
+                <include refid="subordinateId"/>
+            </when>
+            <otherwise>
+                AND c.staff_id = #{pojo.staffId}
+            </otherwise>
+        </choose>
+        <if test="@Ognl@isNotEmpty(pojo.keyWord)">
+            AND (
+            c.customer_name LIKE CONCAT('%',#{pojo.keyWord},'%') OR
+            c.customer_no LIKE CONCAT('%',#{pojo.keyWord},'%') OR
+            c.help_code LIKE CONCAT('%',#{pojo.keyWord},'%')
+            )
+        </if>
+        <if test="@Ognl@isArray(pojo.createTimeArray)">
+            AND DATE_FORMAT(c.create_time, '%Y-%m-%d')
+            <foreach collection="pojo.createTimeArray" item="c" open="BETWEEN" separator="AND">
+                DATE_FORMAT(#{c}, '%Y-%m-%d')
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.orderTimeArray)">
+            AND DATE_FORMAT(c.last_order_time, '%Y-%m-%d')
+            <foreach collection="pojo.orderTimeArray" item="c" open="BETWEEN" separator="AND">
+                DATE_FORMAT(#{c}, '%Y-%m-%d')
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.followTimeArray)">
+            AND DATE_FORMAT(c.last_follow_time, '%Y-%m-%d')
+            <foreach collection="pojo.followTimeArray" item="c" open="BETWEEN" separator="AND">
+                DATE_FORMAT(#{c}, '%Y-%m-%d')
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.orderCountArray)">
+            AND c.order_count
+            <foreach collection="pojo.orderCountArray" item="o" open="BETWEEN" separator="AND">
+                #{o}
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.followCountArray)">
+            AND c.follow_count
+            <foreach collection="pojo.followCountArray" item="f" open="BETWEEN" separator="AND">
+                #{f}
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.levelArray)">
+            AND c.`level` IN
+            <foreach collection="pojo.levelArray" item="l" separator="," open="(" close=")">
+                #{l}
+            </foreach>
+        </if>
+        <if test="@Ognl@isNotEmpty(pojo.deptId)">
+            AND c.dept_id LIKE CONCAT(#{pojo.deptId},'%')
+        </if>
+        <if test="@Ognl@isNotEmpty(pojo.province)">
+            AND c.province = #{pojo.province}
+            <if test="@Ognl@isNotEmpty(pojo.city)">
+                AND c.city = #{pojo.city}
+                <if test="@Ognl@isNotEmpty(pojo.district)">
+                    AND c.district = #{pojo.district}
+                </if>
+            </if>
+        </if>
+        <if test="@Ognl@isArray(pojo.labelArray)">
+            AND cu.label_id IN
+            <foreach collection="pojo.labelArray" item="l" open="(" separator="," close=")">
+                #{l}
+            </foreach>
+        </if>
+        <if test="@Ognl@isArray(pojo.orderMoneyArray)">
+            AND o.amouts
+            <foreach collection="pojo.orderMoneyArray" item="o" open="BETWEEN" separator="AND">
+                #{o}
+            </foreach>
+        </if>
+    </select>
+    <select id="selectSubordinateCustomer" resultType="customer">
+        SELECT customer_id,customer_name FROM customer WHERE company_id = #{pojo.companyId}
+        <choose>
+            <when test="pojo.isDeptManager == 1">
+                AND staff_id IN
+                <include refid="subordinateId"/>
+            </when>
+            <otherwise>
+                AND staff_id = #{pojo.staffId}
+            </otherwise>
+        </choose>
+        <if test="@Ognl@isNotEmpty(keyWord)">
+            AND (
+            customer_name LIKE CONCAT('%',#{keyWord},'%') OR
+            customer_no LIKE CONCAT('%',#{keyWord},'%') OR
+            help_code LIKE CONCAT('%',#{keyWord},'%')
+            )
+        </if>
+    </select>
+    <select id="selectLonAndLat" resultType="int">
+        SELECT COUNT(1) FROM customer WHERE company_id = #{companyId}
+        AND longitude
+        <foreach collection="lonArray" item="lon" open="BETWEEN" separator="AND">#{lon}</foreach>
+        AND latitude
+        <foreach collection="latArray" item="lat" open="BETWEEN" separator="AND">#{lat}</foreach>
+        <if test="@Ognl@isNotEmpty(customerId)">
+            AND customer_id != #{customerId}
+        </if>
+    </select>
+    <select id="selectByPrimaryId" resultMap="customerAndContactAndLabel">
+        SELECT
+        <include refid="selectByPrimaryId_column"/>
+        FROM customer AS c
+        LEFT JOIN contact AS ct ON c.customer_id = ct.customer_id
+        LEFT JOIN customer_label AS cl ON c.customer_id = cl.customer_id
+        WHERE c.company_id = #{companyId} AND c.customer_id = #{customerId}
+    </select>
+    <select id="selectLonAndLatBetween" resultType="customer">
+        SELECT customer_id,customer_name,longitude,latitude,province,city,district,detail_address,staff_name FROM customer WHERE company_id = #{pojo.companyId}
+        <if test="pojo.isDeptManager == 1">
+            AND staff_id IN <include refid="subordinateId"/>
+        </if>
+        <if test="pojo.isDeptManager == 0">
+            AND staff_id = #{pojo.staffId}
+        </if>
+        AND longitude
+        <foreach collection="longitudeArray" item="lon" open="&lt;=" separator="AND longitude &gt;=">#{lon}</foreach>
+        AND latitude
+        <foreach collection="latitudeArray" item="lat" open="&lt;=" separator="AND latitude &gt;=">#{lat}</foreach>
+    </select>
+    <select id="selectCustomerOrderFrequencyAndAmount" resultType="statementVO">
+        select count(*)/count(DISTINCT customer_id) as 'sum'
+        ,sum(amount)/count(DISTINCT customer_id) as 'amount'
+        ,DATE_FORMAT(submit_time, '%Y-%m-%d') as existsDate FROM `order`
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+        <choose>
+            <when test="@Ognl@isTrue(isDay)">
+                GROUP BY DATE_FORMAT(submit_time, '%y-%m-%d')
+            </when>
+            <otherwise>
+                GROUP BY DATE_FORMAT(submit_time, '%y-%m')
+            </otherwise>
+        </choose>
+        order BY existsDate
+    </select>
+    <select id="selectCustomerOrderGoods" resultType="statementVO">
+        SELECT goods_name,sum(sum*goods_price) as `Amount`
+        FROM `order` o LEFT JOIN order_detail od on o.order_id = od.order_id
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+        GROUP BY goods_id
+        ORDER BY `Amount` DESC
+    </select>
+    <select id="selectCustomerOrderType" resultType="statementVO">
+        SELECT type_name,sum(sum*goods_price) as 'Amount'
+        FROM `order` o LEFT JOIN order_detail od on o.order_id = od.order_id
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+        GROUP BY type_id
+        ORDER BY `Amount` DESC
+    </select>
+    <select id="selectCustomerOrderGoodsAvg" resultType="statementVO">
+        SELECT goods_name,sum(sum)/count(*) as `sum`
+        FROM `order` o LEFT JOIN order_detail od on o.order_id = od.order_id
+        WHERE
+        <include refid="StaffIdsAndCompanyId"/>
+        <include refid="dateInterval"/>
+        GROUP BY goods_id
+        ORDER BY `sum` DESC
+    </select>
+    <select id="selectCustomerLabelInfo" resultType="statementVO">
+        SELECT sum(amount) as `value`,label_name as `name` FROM `order` o
+        LEFT JOIN customer c on o.customer_id = c.customer_id
+        LEFT JOIN customer_label cl on cl.customer_id = o.customer_id
+        LEFT JOIN label l on l.label_id = cl.label_id
+        WHERE l.company_id =#{companyId} AND
+        o.staff_id in
+        <include refid="StaffIds"/>
+        <include refid="dateInterval"/>
+        <if test="@Ognl@isArray(labelList)">
+            and l.label_id in
+            <foreach collection="labelList" item="l" open="(" close=")" separator=",">
+                #{l}
+            </foreach>
+        </if>
+        and l.staff_id IS NULL GROUP BY l.label_id;
+    </select>
+    <select id="selectCustomerAgeOrderAvg" resultType="statementVO">
+        SELECT
+        sum(amount)/count(*)                                     AS `sum`,
+        INTERVAL (ageDifference, 20, 25, 30, 35, 40, 45, 50,55,60) AS existsDate
+        FROM `order` o LEFT JOIN customer c ON o.customer_id = c.customer_id
+        LEFT JOIN (select ( DATE_FORMAT(now(), '%Y')-DATE_FORMAT(birthday, '%Y')) as ageDifference,customer_id FROM customer ) as sa on c.customer_id = sa.customer_id
+        where  o.staff_id IN
+        <include refid="StaffIds"/>
+        AND o.company_id = #{companyId}
+        <include refid="dateInterval"/>
+        group by existsDate;
+    </select>
+    <select id="exportCustomer" resultType="excelCustomerPojo">
+        SELECT  <include refid="exportCustomer_column"/> FROM customer c
+          LEFT JOIN (SELECT customer_id, contact_phone, contact_name FROM contact WHERE company_Id = #{pojo.companyId} AND is_main = 1) AS ct
+          ON c.customer_id = ct.customer_id
+          LEFT JOIN (SELECT group_concat(label_name) AS labels,customer_id FROM customer_label WHERE company_id = #{pojo.companyId} GROUP BY customer_id,company_id) AS cl
+          ON c.customer_id = cl.customer_id
+        WHERE c.company_id = #{pojo.companyId}
+        <if test="pojo.isDeptManager == 1">
+            AND c.staff_id IN <include refid="subordinateId"/>
+        </if>
+        <if test="pojo.isDeptManager == 0">
+            AND c.staff_id = #{pojo.staffId}
+        </if>
+        ORDER BY c.create_time DESC
+    </select>
+</mapper>

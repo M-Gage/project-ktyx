@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ywkj.ktyunxiao.dao.LogMapper">
+
+    <sql id="Base_Column_List">
+        staff_id,url,parameters,method,source,ip_address,operate_time
+    </sql>
+
+    <insert id="insertOperationLog" parameterType="com.ywkj.ktyunxiao.model.Log">
+        insert into log
+        (
+        <include refid="Base_Column_List"/>
+        )
+        values
+        (
+        #{staffId},#{url},#{parameters},#{method},#{source},#{ipAddress},#{operateTime}
+        )
+    </insert>
+</mapper>
+
+

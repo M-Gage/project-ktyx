@@ -1,0 +1,72 @@
+server:
+  port: 8081
+  error:
+    path: /404
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      url: jdbc:mysql://39.107.127.12:3306/ktyx?useUnicode=true&autoReconnect=true&rewriteBatchedStatements=TRUE
+      driver-class-name: com.mysql.jdbc.Driver
+      username: shizhifengyun
+      password: Shizhifengyun!@34
+      initial-size: 10
+      max-active: 10
+      min-idle: 5
+      max-wait: 6000
+      min-evictable-idle-time-millis: 300000
+      time-between-eviction-runs-millis: 60000
+      validation-query: select 'x'
+      test-on-borrow: false
+      test-on-return: false
+      test-while-idle: true
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 50
+      stat-view-servlet:
+        login-username: ywkj
+        login-password: ywkj
+  freemarker:
+    content-type: text/html
+    charset: UTF-8
+    cache: false
+    template-loader-path: classpath:/templates/
+    suffix: .ftl
+  resources:
+    static-locations: classpath:/static/
+  mvc:
+    static-path-pattern: /static/**
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+  cache:
+    type: ehcache
+    ehcache:
+      config: classpath:/ehcache.xml
+mybatis:
+  type-aliases-package: com.ywkj.ktyunxiao.model
+  mapper-locations: /mapper/*Mapper.xml
+  configuration:
+    map-underscore-to-camel-case: true
+#文件
+file:
+  path: F:/文件
+  # 加载路径
+  load-Path: file:/${file.path}/
+  # 上传路径
+  upload-Path: ${file.path}/
+  # 预览图
+  preview-path: ${file.path}/preview/
+logging:
+  level:
+    com.ywkj.ktyunxiao.dao: DEBUG
+  path: ${file.path}
+jwt:
+  header: Authorization
+  secret: 12(U@}!)@&*()$*)&TPIU324_)K@(!~~!@@#
+  expiration: 604800
+jiguang:
+  app-key: 443689dd777770f29841bdda
+  secret: 18d9df456c5ca723aa396d6b
+  #最大十天(秒单位)
+  time-to-live: 864000
